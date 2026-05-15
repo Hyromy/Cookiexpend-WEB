@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+    --color-bg: var(--bg);
+    --color-fg: var(--fg);
+
+    --color-primary: var(--primary);
+    --color-primary-fg: var(--primary-fg);
+
+    --color-muted: rgb(128, 128, 128);
+    --spacing-header-h: 3rem;
+}
+
+:root {
+    --bg: rgb(248, 248, 248);
+    --fg: rgb(20, 20, 20);
+
+    --primary: rgb(0, 120, 255);
+    --primary-fg: rgb(255, 255, 255);
+}
+
+.dark {
+    --bg: rgb(20, 20, 20);
+    --fg: rgb(248, 248, 248);
+
+    --primary: rgb(0, 120, 255);
+    --primary-fg: rgb(255, 255, 255);
+}
+
+@layer base {
+    * {
+        transition-property: 
+            background-color,
+            border-color,
+            color,
+            fill,
+            stroke,
+            text-decoration-color;
+        
+        transition-duration: .3s;
+        transition-timing-function: ease;
+    }
+
+    html, body, #root {
+        min-height: 100%;
+    }
+
+    body {
+        background-color: var(--bg);
+        color: var(--fg);
+
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    .no-transitions *, 
+    .no-transitions {
+        transition: none !important;
+    }
+}
