@@ -66,13 +66,13 @@ export function OffCanvas({
       <aside
         className={
           clsx(
-            "fixed top-0 h-full w-full max-w-xs bg-bg shadow-2xl z-51 transform transition-transform duration-300 ease-in-out",
+            "fixed top-0 h-full w-full max-w-sm bg-card shadow-2xl z-51 transform transition-transform duration-300 ease-in-out",
             positions[position],
             position == "l" ? "left-0" : "right-0"
           )
         }
       >
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b border-muted">
           {title && <h2 className="text-lg font-semibold">{title}</h2>}
           <button
             className="p-2 rounded-full hover:bg-muted/50 transition-colors"
@@ -81,7 +81,7 @@ export function OffCanvas({
             <X />
           </button>
         </div>
-        <div className="p-4 overflow-y-auto">
+        <div className="overflow-y-auto">
           {children}
         </div>
       </aside>

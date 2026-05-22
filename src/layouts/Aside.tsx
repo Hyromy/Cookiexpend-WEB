@@ -6,23 +6,36 @@ import { clsx } from "clsx"
 
 export default function Aside({closeCanvas}: {closeCanvas?: () => void}) {
   return (
-    <aside className="w-72 lg:me-2 lg:border-r flex flex-col gap-1 p-4 h-fit sticky top-header-h">
-      {MODULE_ROUTES.map((module) => (
+    <aside className="border-muted lg:border-r flex flex-col h-full">
+      <div className="self-stretch sticky top-header-h">
+        {MODULE_ROUTES.map((module) => (
         <NavLink
           key={module.path}
           to={PATHS.panel + module.path}
           onClick={closeCanvas}
           className={({ isActive }) =>
             clsx(
-              "flex items-center gap-2 rounded-md border-2 border-primary px-2 py-1 ",
-              isActive ? "bg-primary/10" : "hover:bg-primary/5"
+              "flex items-center gap-3 p-3 border-l-8 w-full",
+              isActive
+                ? "bg-primary/10 border-primary"
+                : "hover:bg-primary/10 border-transparent",
             )
           }
         >
-          <span className="text-primary">{module.icon}</span>
-          <span className="capitalize">{module.label}</span>
+          {({ isActive }) => (
+            <>
+              <span className={clsx(isActive && "text-primary")}>
+                {module.icon}
+              </span>
+              <span className={clsx("capitalize transition-all", isActive && "text-primary font-bold")}>
+                {module.label}
+              </span>
+            </>
+          )}
         </NavLink>
       ))}
+      </div>
+      
     </aside>
   )
 }
