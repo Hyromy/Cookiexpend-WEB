@@ -19,7 +19,7 @@ export default function Main() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex flex-1 max-w-7xl mx-auto w-full">
-        <div className="hidden lg:block">
+        <div className="hidden lg:block w-72">
           <Aside />
         </div>
         <div className="lg:hidden">

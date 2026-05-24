@@ -7,6 +7,11 @@
     --color-primary: var(--primary);
     --color-primary-fg: var(--primary-fg);
 
+    --color-secondary: var(--secondary);
+    --color-secondary-fg: var(--secondary-fg);
+
+    --color-card: var(--card);
+
     --color-muted: rgb(128, 128, 128);
     --spacing-header-h: 3rem;
 }
@@ -17,14 +22,24 @@
 
     --primary: rgb(0, 120, 255);
     --primary-fg: rgb(255, 255, 255);
+
+    --secondary: rgb(255, 0, 180);
+    --secondary-fg: rgb(255, 255, 255);
+
+    --card: rgb(240, 240, 240);
 }
 
 .dark {
-    --bg: rgb(20, 20, 20);
+    --bg: rgb(0, 0, 0);
     --fg: rgb(248, 248, 248);
 
     --primary: rgb(0, 120, 255);
     --primary-fg: rgb(255, 255, 255);
+
+    --secondary: rgb(255, 0, 180);
+    --secondary-fg: rgb(255, 255, 255);
+
+    --card: rgb(8, 8, 8);
 }
 
 @layer base {
