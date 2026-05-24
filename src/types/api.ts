@@ -33,12 +33,9 @@ export type itemResponse = {
   id: number
 }
 
-export type productResponse = itemResponse & eventResponse & {
-  description: string
+export type productRequest = {
   name: string
   price: string
 }
 
-export type productRequest = {
-  data: unknown
-}
+export type productResponse = productRequest & itemResponse & eventResponse
