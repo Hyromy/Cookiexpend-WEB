@@ -7,4 +7,7 @@ export const PATHS = {
   users: "/usuarios",
   stores: "/expendios",
   sales: "/ventas",
+  factories: "/plantas",
+  deliveries: "/repartos",
+  inventories: "/inventarios",
 } as const
