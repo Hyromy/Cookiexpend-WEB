@@ -85,7 +85,7 @@ function FactoryForm() {
   }
 
   return (
-    <Form onSubmit={onSubmitHandler}>
+    <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
       <TextField name="municipality" placeholder="Municipio" />
       <TextField name="name" placeholder="Nombre" />
       <TextField name="neighborhood" placeholder="Colonia" />

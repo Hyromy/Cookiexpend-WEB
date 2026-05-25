@@ -3,6 +3,7 @@ import { type ReactNode, type SyntheticEvent } from "react"
 type FormProps<T> = {
   children: ReactNode
   onSubmit: (data: T) => void
+  className?: string
 }
 /**
  * A reusable form component that handles form submission and data extraction.
@@ -21,7 +22,11 @@ type FormProps<T> = {
  *   <Button type="submit">Submit</Button>
  * </Form>
  */
-export function Form<T>({ children, onSubmit }: FormProps<T>) {
+export function Form<T>({
+  children,
+  onSubmit,
+  className
+}: FormProps<T>) {
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
@@ -30,7 +35,7 @@ export function Form<T>({ children, onSubmit }: FormProps<T>) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className={className}>
       {children}
     </form>
   )
@@ -40,6 +45,7 @@ type TextFieldProps = {
   name: string
   type?: string
   placeholder?: string
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
 }
 /**
  * A reusable text input component for forms, supporting different types and placeholders.
@@ -56,6 +62,7 @@ export function TextField({
   name,
   type = "text",
   placeholder,
+  onChange,
   ...props
 } : TextFieldProps) {
   return (
@@ -63,7 +70,31 @@ export function TextField({
       name={name}
       type={type}
       placeholder={placeholder}
+      onChange={onChange}
       {...props}
     />
+  )
+}
+
+type SelectFieldProps = {
+  name: string
+  options: { value: string, label: string }[]
+  placeholder?: string
+}
+
+export function SelectField({
+  name,
+  options,
+  placeholder,
+}: SelectFieldProps) {
+  return (
+    <select name={name}>
+      {placeholder && <option value="">{placeholder}</option>}
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   )
 }

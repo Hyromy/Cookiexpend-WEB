@@ -67,11 +67,11 @@ function StoreForm() {
 
   useEffect(() => {
     if (data) {
-      alert("Planta creada con exito!")
+      alert("Expendio creado con exito!")
     }
     if (error) {
       console.error(error)
-      alert("Error al crear la planta")
+      alert("Error al crear el expendio")
     }
   }, [data, error])
 
@@ -85,7 +85,7 @@ function StoreForm() {
   }
 
   return (
-    <Form onSubmit={onSubmitHandler}>
+    <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
       <TextField name="municipality" placeholder="Municipio" />
       <TextField name="name" placeholder="Nombre" />
       <TextField name="neighborhood" placeholder="Colonia" />

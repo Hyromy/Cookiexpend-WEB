@@ -73,8 +73,21 @@ class ProductService {
   }
 }
 
+class DeliveryService {
+  readonly endpoint = "api/deliveries/"
+
+  get(id: string | number = ""): Promise<apiType.deliveryResponse | apiType.deliveryResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.deliveryRequest): Promise<apiType.deliveryResponse> {
+    return api.post(this.endpoint, data)
+  }
+}
+
 export const healthService = Object.freeze(new HealthService())
 export const authService = Object.freeze(new AuthService())
 export const factoryService = Object.freeze(new FactoryService())
 export const storeService = Object.freeze(new StoreService())
 export const productService = Object.freeze(new ProductService())
+export const deliveryService = Object.freeze(new DeliveryService())

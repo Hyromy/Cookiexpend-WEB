@@ -57,7 +57,7 @@ function ProductForm({ setter }: { setter: (data: SetStateAction<productResponse
     if (data) {
       onAdd(setter, data as productResponse)
     }
-  }, [error, data])
+  }, [error, data, setter])
 
   const onSubmitHandler = (product: productRequest) => {
     if (product.name == "" || parseFloat(product.price) <= 0) {
@@ -69,11 +69,9 @@ function ProductForm({ setter }: { setter: (data: SetStateAction<productResponse
   }
 
   return (
-    <Form onSubmit={onSubmitHandler}>
+    <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
       <TextField name="name" placeholder="nombre" />
-      <br />
       <TextField name="price" placeholder="precio" />
-      <br />
       <Button type="submit" disabled={isLoading}>
         Enviar
       </Button>

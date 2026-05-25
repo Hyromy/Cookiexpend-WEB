@@ -54,7 +54,7 @@ export type factoryResponse = itemResponse & eventResponse & {
 }
 
 export type factoryRequest = {
-  establishment: number | establishmentRequest
+  establishment: establishmentRequest
 }
 
 export type storeResponse = itemResponse & eventResponse & {
@@ -62,7 +62,7 @@ export type storeResponse = itemResponse & eventResponse & {
 }
 
 export type storeRequest = {
-  establishment: number | establishmentRequest
+  establishment: establishmentRequest
 }
 
 export type productRequest = {
@@ -71,3 +71,24 @@ export type productRequest = {
 }
 
 export type productResponse = productRequest & itemResponse & eventResponse
+
+export type packageRequest = {
+  product: number | string
+  quantity: number
+}
+
+export type packageResponse = {
+  product: productResponse
+  quantity: number
+}
+
+export type deliveryRequest = {
+  store: number | string
+  factory: number | string
+  package: packageRequest[]
+}
+
+export type deliveryResponse = itemResponse & eventResponse & {
+  store: storeResponse
+  factory: factoryResponse
+}

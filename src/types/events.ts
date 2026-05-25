@@ -7,7 +7,9 @@ export type eventModel =
 	"establishment" |
 	"factory" |
 	"store" |
-	"product" 
+	"product" |
+	"delivery" |
+	"package"
 
 export type eventData = {
 	action: eventAction
