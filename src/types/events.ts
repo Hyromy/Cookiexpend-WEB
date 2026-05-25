@@ -4,7 +4,10 @@ export type eventAction =
 	"deleted"
 
 export type eventModel = 
-	"product"
+	"establishment" |
+	"factory" |
+	"store" |
+	"product" 
 
 export type eventData = {
 	action: eventAction

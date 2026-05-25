@@ -33,6 +33,38 @@ export type itemResponse = {
   id: number
 }
 
+export type establishmentResponse = itemResponse & eventResponse & {
+  name: string
+  municipality: string
+  neighborhood: string
+  street: string
+  number: string
+}
+
+export type establishmentRequest = {
+  municipality: string
+  name: string
+  neighborhood: string
+  street: string
+  number?: string
+}
+
+export type factoryResponse = itemResponse & eventResponse & {
+  establishment: establishmentResponse
+}
+
+export type factoryRequest = {
+  establishment: number | establishmentRequest
+}
+
+export type storeResponse = itemResponse & eventResponse & {
+  establishment: establishmentResponse
+}
+
+export type storeRequest = {
+  establishment: number | establishmentRequest
+}
+
 export type productRequest = {
   name: string
   price: string

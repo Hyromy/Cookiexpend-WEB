@@ -29,6 +29,30 @@ class AuthService {
   }
 }
 
+class FactoryService {
+  readonly endpoint = "api/factories/"
+
+  get(id: string | number = ""): Promise<apiType.factoryResponse | apiType.factoryResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.factoryRequest): Promise<apiType.factoryResponse> {
+    return api.post(this.endpoint, data)
+  }
+}
+
+class StoreService {
+  readonly endpoint = "api/stores/"
+
+  get(id: string | number = ""): Promise<apiType.storeResponse | apiType.storeResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.storeRequest): Promise<apiType.storeResponse> {
+    return api.post(this.endpoint, data)
+  }
+}
+
 class ProductService {
   readonly endpoint = "api/products/"
 
@@ -44,11 +68,13 @@ class ProductService {
     return api.patch(this.endpoint + param(id), data)
   }
 
-  del(id: string | number): Promise<unknown> {
+  del(id: string | number): Promise<void> {
     return api.delete(this.endpoint + param(id))
   }
 }
 
 export const healthService = Object.freeze(new HealthService())
 export const authService = Object.freeze(new AuthService())
+export const factoryService = Object.freeze(new FactoryService())
+export const storeService = Object.freeze(new StoreService())
 export const productService = Object.freeze(new ProductService())
