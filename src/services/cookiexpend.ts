@@ -1,10 +1,18 @@
 import * as apiType from "../types/api"
 import { api } from "./api"
 
-const param = (id: string | number) => {
+const param = (id: string | number): string => {
   return String(id).length > 0
     ? id + "/"
     : ""
+}
+
+const args = (data: Record<string, string | number>): string => {
+  const params = new URLSearchParams()
+  for (const key in data) {
+    params.append(key, String(data[key]))
+  }
+  return "?" + params.toString()
 }
 
 class HealthService {
@@ -85,9 +93,18 @@ class DeliveryService {
   }
 }
 
+class InventoryService {
+  readonly endpoint = "api/inventories/"
+
+  get(query: apiType.inventoryRequest): Promise<apiType.inventoryResponse[]> {
+    return api.get(this.endpoint + args(query))
+  }
+}
+
 export const healthService = Object.freeze(new HealthService())
 export const authService = Object.freeze(new AuthService())
 export const factoryService = Object.freeze(new FactoryService())
 export const storeService = Object.freeze(new StoreService())
 export const productService = Object.freeze(new ProductService())
 export const deliveryService = Object.freeze(new DeliveryService())
+export const inventoryService = Object.freeze(new InventoryService())

@@ -92,3 +92,13 @@ export type deliveryResponse = itemResponse & eventResponse & {
   store: storeResponse
   factory: factoryResponse
 }
+
+export type inventoryRequest = {
+  store: string | number
+}
+
+export type inventoryResponse = itemResponse & eventResponse & {
+  store: storeResponse
+  product: productResponse
+  quantity: number
+}
