@@ -101,6 +101,16 @@ class InventoryService {
   }
 }
 
+
+
+class UserService {
+  readonly endpoint = "api/users/"
+
+  get(id: string | number = ""): Promise<apiType.userInfoResponse | apiType.userInfoResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+}
+
 export const healthService = Object.freeze(new HealthService())
 export const authService = Object.freeze(new AuthService())
 export const factoryService = Object.freeze(new FactoryService())
@@ -108,3 +118,5 @@ export const storeService = Object.freeze(new StoreService())
 export const productService = Object.freeze(new ProductService())
 export const deliveryService = Object.freeze(new DeliveryService())
 export const inventoryService = Object.freeze(new InventoryService())
+
+export const userService = Object.freeze(new UserService())

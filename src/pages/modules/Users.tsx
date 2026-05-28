@@ -1,33 +1,27 @@
+import { useCallback, useEffect } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
+import { userService } from "../../services/cookiexpend"
 
-const range = (i: number): number[] => {
-  const items: number[] = []
-  let c = 0
-  while (c < i) {
-    items[c] = c
-    c++
-  }
-  return items
-}
 
 export default function Users() {
-  const { data, error, isLoading } = useApi()
+  const { data, error, isLoading, request } = useApi()
+
+  const requestData = useCallback(() => request(userService.get()), [request])
+
+  useEffect(() => { requestData() }, [requestData])
 
   return (
     <StateGate
-      data={data || true}
+      data={data}
       error={error}
       loading={isLoading}
       emptyProps={{ title: "Usuarios" }}
+      errorProps={{ onRetry: requestData }}
     >
-      <div className="flex flex-col">
-        {range(30).map((x) => (
-          <p key={x} className="m-3">
-            {x}
-          </p>
-        ))}
-      </div>
+      <pre>
+        {JSON.stringify(data, null, 4)}
+      </pre>
     </StateGate>
   )
 }
