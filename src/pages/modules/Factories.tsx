@@ -6,6 +6,8 @@ import useEvent, { onAdd, onDelete, onUpdate } from "../../hooks/useEvent"
 import type { establishmentRequest, establishmentResponse, factoryResponse } from "../../types/api"
 import { Button } from "../../components/Button"
 import { Form, TextField } from "../../components/Form"
+import { Table } from "../../components/Table"
+import { Pencil, Trash } from "lucide-react"
 
 export default function Factories() {
   const { data, error, isLoading, request, setData } = useApi<factoryResponse[]>()
@@ -44,6 +46,13 @@ export default function Factories() {
     }
   }, [setData])})
 
+  const onEditHandler = (factory: factoryResponse) => {
+    alert("{pendiente} Editar planta: " + factory.establishment.name)
+  }
+  const onDeleteHandler = (factory: factoryResponse) => {
+    alert("{pendiente} Eliminar planta: " + factory.establishment.name)
+  }
+
   return (
     <>
       <FactoryForm />
@@ -54,9 +63,21 @@ export default function Factories() {
         emptyProps={{ title: "Plantas" }}
         errorProps={{ onRetry: requestData }}
       >
-        <pre>
-          {JSON.stringify(data, null, 4)}
-        </pre>
+        <Table
+          headers={["Nombre", "Municipio", "Colonia", "Calle", "Número", "Acciones"]}
+          data={data!}
+          row={x => [
+            x.establishment.name,
+            x.establishment.municipality,
+            x.establishment.neighborhood,
+            x.establishment.street,
+            x.establishment.number,
+            <>
+              <Button onClick={() => onEditHandler(x)}><Pencil /></Button>
+              <Button onClick={() => onDeleteHandler(x)}><Trash /></Button>
+            </>
+          ]}
+        />
       </StateGate>
     </>
   )

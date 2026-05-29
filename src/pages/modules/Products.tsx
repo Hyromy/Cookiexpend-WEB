@@ -6,6 +6,8 @@ import useEvent, { onAdd, onDelete, onUpdate } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
 import { Form, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
+import { Table } from "../../components/Table"
+import { Pencil, Trash } from "lucide-react"
 
 export default function Products() {
   const { data, error, isLoading, request, setData } = useApi<productResponse[]>()
@@ -29,6 +31,13 @@ export default function Products() {
     }
   }, [setData])})
 
+  const onEditHandler = (product: productResponse) => {
+    alert("{pendiente} Editar producto: " + product.name)
+  }
+  const onDeleteHandler = (product: productResponse) => {
+    alert("{pendiente} Eliminar producto: " + product.name)
+  }
+
   return (
     <>
       <ProductForm setter={setData} />
@@ -38,9 +47,18 @@ export default function Products() {
         loading={isLoading}
         errorProps={{ onRetry: requestData }}
       >
-        <pre>
-          {JSON.stringify(data, null, 4)}
-        </pre>
+        <Table
+          headers={["Nombre", "Precio", "Acciones"]}
+          data={data!}
+          row={x => [
+            x.name,
+            x.price,
+            <>
+              <Button onClick={() => onEditHandler(x)}><Pencil /></Button>
+              <Button onClick={() => onDeleteHandler(x)}><Trash /></Button>
+            </>
+          ]}
+        />
       </StateGate>
     </>
   )
