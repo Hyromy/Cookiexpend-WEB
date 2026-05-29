@@ -2,9 +2,14 @@ import * as apiType from "../types/api"
 import { api } from "./api"
 
 const param = (id: string | number): string => {
-  return String(id).length > 0
-    ? id + "/"
-    : ""
+  try {
+    const parsed = parseInt(String(id))
+    return parsed > 0
+      ? parsed + "/"
+      : ""
+  } catch {
+    return ""
+  }
 }
 
 const args = (data: Record<string, string | number>): string => {
@@ -12,7 +17,9 @@ const args = (data: Record<string, string | number>): string => {
   for (const key in data) {
     params.append(key, String(data[key]))
   }
-  return "?" + params.toString()
+  return params
+    ? "?" + params.toString()
+    : ""
 }
 
 class HealthService {
@@ -96,8 +103,8 @@ class DeliveryService {
 class InventoryService {
   readonly endpoint = "api/inventories/"
 
-  get(query: apiType.inventoryRequest): Promise<apiType.inventoryResponse[]> {
-    return api.get(this.endpoint + args(query))
+  get(id: string | number = "", query?: apiType.inventoryRequest): Promise<apiType.inventoryResponse[]> {
+    return api.get(this.endpoint + param(id) + args(query!))
   }
 }
 

@@ -91,6 +91,7 @@ export type deliveryRequest = {
 export type deliveryResponse = itemResponse & eventResponse & {
   store: storeResponse
   factory: factoryResponse
+  package: packageResponse[]
 }
 
 export type inventoryRequest = {

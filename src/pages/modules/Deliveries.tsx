@@ -6,6 +6,8 @@ import { deliveryService, factoryService, productService, storeService } from ".
 import useEvent, { onAdd, onDelete, onUpdate } from "../../hooks/useEvent"
 import { Form, SelectField, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
+import { Table } from "../../components/Table"
+import { Pencil, Trash } from "lucide-react"
 
 export default function Deliveries() {
   const { data, error, isLoading, request, setData } = useApi<deliveryResponse[]>()
@@ -77,6 +79,13 @@ export default function Deliveries() {
     }
   }, [setData])})
 
+  const onEditHandler = (delivery: deliveryResponse) => {
+    alert("{pendiente} Editar reparto: " + delivery.id)
+  }
+  const onDeleteHandler = (delivery: deliveryResponse) => {
+    alert("{pendiente} Eliminar reparto: " + delivery.id)
+  }
+
   return (
   <>
     <DeliveryForm />
@@ -87,9 +96,20 @@ export default function Deliveries() {
       emptyProps={{ title: "Repartos" }}
       errorProps={{ onRetry: requestData }}
     >
-      <pre>
-        {JSON.stringify(data, null, 4)}
-      </pre>
+      <Table
+        headers={["ID", "Planta", "Expendio", "Productos", "Acciones"]}
+        data={data!}
+        row={x => [
+          x.id,
+          x.factory.establishment.name,
+          x.store.establishment.name,
+          x.package.map(p => `${p.product.name} (x${p.quantity})`).join(", "),
+          <>
+            <Button onClick={() => onEditHandler(x)}><Pencil /></Button>
+            <Button onClick={() => onDeleteHandler(x)}><Trash /></Button>
+          </>
+        ]}
+      />
     </StateGate>
   </>
   )

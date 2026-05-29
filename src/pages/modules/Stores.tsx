@@ -6,6 +6,8 @@ import { storeService } from "../../services/cookiexpend"
 import useEvent, { onAdd, onDelete, onUpdate } from "../../hooks/useEvent"
 import { Form, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
+import { Table } from "../../components/Table"
+import { Pencil, Trash } from "lucide-react"
 
 export default function Stores() {
   const { data, error, isLoading, request, setData } = useApi<storeResponse[]>()
@@ -44,6 +46,13 @@ export default function Stores() {
     }
   }, [setData])})
 
+  const onEditHandler = (store: storeResponse) => {
+    alert("{pendiente} Editar expendio: " + store.establishment.name)
+  }
+  const onDeleteHandler = (store: storeResponse) => {
+    alert("{pendiente} Eliminar expendio: " + store.establishment.name)
+  }
+
   return (
     <>
       <StoreForm />
@@ -54,9 +63,21 @@ export default function Stores() {
         emptyProps={{ title: "Expendios" }}
         errorProps={{ onRetry: requestData }}
       >
-        <pre>
-          {JSON.stringify(data, null, 4)}
-        </pre>
+        <Table
+          headers={["Nombre", "Municipio", "Colonia", "Calle", "Número", "Acciones"]}
+          data={data!}
+          row={x => [
+            x.establishment.name,
+            x.establishment.municipality,
+            x.establishment.neighborhood,
+            x.establishment.street,
+            x.establishment.number,
+            <>
+              <Button onClick={() => onEditHandler(x)}><Pencil /></Button>
+              <Button onClick={() => onDeleteHandler(x)}><Trash /></Button>
+            </>
+          ]}
+        />
       </StateGate>
     </>
   )
