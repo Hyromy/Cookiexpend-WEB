@@ -45,7 +45,9 @@ type TextFieldProps = {
   name: string
   type?: string
   placeholder?: string
+  value?: string | number
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
+  className?: string
 }
 /**
  * A reusable text input component for forms, supporting different types and placeholders.

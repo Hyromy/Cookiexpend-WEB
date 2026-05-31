@@ -108,7 +108,17 @@ class InventoryService {
   }
 }
 
+class SaleService {
+  readonly endpoint = "api/sells/"
 
+  get(id: string | number = ""): Promise<apiType.saleResponse | apiType.saleResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.saleRequest): Promise<apiType.saleResponse> {
+    return api.post(this.endpoint, data)
+  }
+}
 
 class UserService {
   readonly endpoint = "api/users/"
@@ -125,5 +135,5 @@ export const storeService = Object.freeze(new StoreService())
 export const productService = Object.freeze(new ProductService())
 export const deliveryService = Object.freeze(new DeliveryService())
 export const inventoryService = Object.freeze(new InventoryService())
-
+export const saleService = Object.freeze(new SaleService())
 export const userService = Object.freeze(new UserService())
