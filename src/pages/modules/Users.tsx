@@ -5,18 +5,19 @@ import { userService } from "../../services/cookiexpend"
 import { Table } from "../../components/Table"
 import { Button } from "../../components/Button"
 import { Pencil, Trash } from "lucide-react"
+import type { userInfoResponse } from "../../types/api"
 
 export default function Users() {
-  const { data, error, isLoading, request } = useApi<any[]>()
+  const { data, error, isLoading, request } = useApi<userInfoResponse[]>()
 
   const requestData = useCallback(() => request(userService.get()), [request])
 
   useEffect(() => { requestData() }, [requestData])
 
-  const onEditHandler = (user: any) => {
+  const onEditHandler = (user: userInfoResponse) => {
     alert("{pendiente} Editar usuario: " + user.username)
   }
-  const onDeleteHandler = (user: any) => {
+  const onDeleteHandler = (user: userInfoResponse) => {
     alert("{pendiente} Eliminar usuario: " + user.username)
   }
 

@@ -68,7 +68,7 @@ export default function Inventories() {
         data={parseData(data!)}
         row={x => [
           x.store.establishment.name,
-          x.products.map((p:any) => `${p.product.name} (${p.quantity})`).join(", ")
+          x.products.map(p => `${p.product.name} (${p.quantity})`).join(", ")
         ]}
       />
     </StateGate>

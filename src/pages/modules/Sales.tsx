@@ -27,7 +27,7 @@ export default function Sales() {
       case "updated": return onUpdate(setData, data)
       case "deleted": return onDelete(setData, data)
     }
-  }, []) })
+  }, [setData]) })
 
   return (
     <>
@@ -89,11 +89,10 @@ function SalesForm() {
   const { data, request } = useApi<productResponse[]>()
 
   const {
-    data: pushData,
     error: pushError,
     isLoading: pushLoading,
     request: pushRequest
-  } = useApi<any>()
+  } = useApi<saleResponse>()
 
   const clearForm = () => {
     setQuantities({})
@@ -104,15 +103,11 @@ function SalesForm() {
   }, [request])
 
   useEffect(() => {
-    if (pushData) {
-      alert("Venta registrada exitosamente")
-      clearForm()
-    }
     if (pushError) {
       console.error("Error al registrar la venta: ", pushError)
       alert("Ocurrió un error al registrar la venta. Por favor, intenta de nuevo.")
     }
-  }, [pushData, pushError])
+  }, [pushError])
 
   const handleQuantityChange = (productId: number, quantity: string) => {
     setQuantities(prev => ({
@@ -126,11 +121,15 @@ function SalesForm() {
     return acc + (qty * parseFloat(product.price))
   }, 0) || 0
 
-  const onSubmitHandler = (data: rawSaleData) => {
+  const onSubmitHandler = async (data: rawSaleData) => {
     const parsedData = parseData(data)
     if (!validateData(parsedData)) return
 
-    pushRequest(saleService.new(parsedData))
+    const response = await pushRequest(saleService.new(parsedData))
+    if (response) {
+      alert("Venta registrada exitosamente")
+      clearForm()
+    }
   }
 
   return (
