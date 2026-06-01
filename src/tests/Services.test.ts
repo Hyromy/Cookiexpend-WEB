@@ -206,14 +206,14 @@ describe("cookiexpend.ts", () => {
     })
 
     it("creates product", async () => {
-      const payload = { data: { name: "Cookie", price: 10 } }
+      const payload = { name: "Cookie", price: "10" }
       mockClient.post.mockResolvedValueOnce({ data: {} })
       await productService.new(payload)
       expect(mockClient.post).toHaveBeenCalledWith("api/products/", payload, expect.any(Object))
     })
 
     it("updates product", async () => {
-      const payload = { data: { name: "Cookie", price: 12 } }
+      const payload = { name: "Cookie", price: "12" }
       mockClient.patch.mockResolvedValueOnce({ data: {} })
       await productService.update(7, payload)
       expect(mockClient.patch).toHaveBeenCalledWith("api/products/7/", payload, expect.any(Object))
