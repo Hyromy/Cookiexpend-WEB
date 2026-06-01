@@ -1,23 +1,23 @@
 import { useCallback, useEffect } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
-import type { establishmentRequest, establishmentResponse, storeResponse } from "../../types/api"
-import { storeService } from "../../services/cookiexpend"
+import { factoryService } from "../../services/cookiexpend"
 import useEvent, { onAdd, onDelete, onUpdate } from "../../hooks/useEvent"
-import { Form, TextField } from "../../components/Form"
+import type { establishmentRequest, establishmentResponse, factoryResponse } from "../../types/api"
 import { Button } from "../../components/Button"
+import { Form, TextField } from "../../components/Form"
 import { Table } from "../../components/Table"
 import { Pencil, Trash } from "lucide-react"
 
-export default function Stores() {
-  const { data, error, isLoading, request, setData } = useApi<storeResponse[]>()
-  
-  const requestData = useCallback(() => request(storeService.get()), [request])
-  
+export default function Factories() {
+  const { data, error, isLoading, request, setData } = useApi<factoryResponse[]>()
+
+  const requestData = useCallback(() => request(factoryService.get()), [request])
+
   useEffect(() => { requestData() }, [requestData])
 
-  useEvent({ from: ["store"], cb: useCallback((e) => {
-    const data = e.data as storeResponse
+  useEvent({ from: ["factory"], cb: useCallback((e) => {
+    const data = e.data as factoryResponse
     switch (e.action) {
       case "created": return onAdd(setData, data)
       case "updated": return onUpdate(setData, data)
@@ -46,21 +46,21 @@ export default function Stores() {
     }
   }, [setData])})
 
-  const onEditHandler = (store: storeResponse) => {
-    alert("{pendiente} Editar expendio: " + store.establishment.name)
+  const onEditHandler = (factory: factoryResponse) => {
+    alert("{pendiente} Editar planta: " + factory.establishment.name)
   }
-  const onDeleteHandler = (store: storeResponse) => {
-    alert("{pendiente} Eliminar expendio: " + store.establishment.name)
+  const onDeleteHandler = (factory: factoryResponse) => {
+    alert("{pendiente} Eliminar planta: " + factory.establishment.name)
   }
 
   return (
     <>
-      <StoreForm />
+      <FactoryForm />
       <StateGate
         data={data}
         error={error}
         loading={isLoading}
-        emptyProps={{ title: "Expendios" }}
+        emptyProps={{ title: "Plantas" }}
         errorProps={{ onRetry: requestData }}
       >
         <Table
@@ -83,16 +83,16 @@ export default function Stores() {
   )
 }
 
-function StoreForm() {
-  const { data, error, isLoading, request } = useApi<storeResponse>()
-
+function FactoryForm() {
+  const { data, error, isLoading, request } = useApi<factoryResponse>()
+  
   useEffect(() => {
     if (data) {
-      alert("Expendio creado con exito!")
+      alert("Planta creada con exito!")
     }
     if (error) {
       console.error(error)
-      alert("Error al crear el expendio")
+      alert("Error al crear la planta")
     }
   }, [data, error])
 
@@ -102,7 +102,7 @@ function StoreForm() {
       return
     }
 
-    request(storeService.new({ establishment: data }))
+    request(factoryService.new({ establishment: data }))
   }
 
   return (
@@ -113,7 +113,7 @@ function StoreForm() {
       <TextField name="street" placeholder="Calle" />
       <TextField name="number" placeholder="Número" />
       <Button type="submit" disabled={isLoading}>
-        Crear nuevo expendio
+        Enviar
       </Button>
     </Form>
   )
