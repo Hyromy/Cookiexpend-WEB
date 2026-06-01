@@ -48,6 +48,7 @@ type TextFieldProps = {
   value?: string | number
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
   className?: string
+  defaultValue?: string | number
 }
 /**
  * A reusable text input component for forms, supporting different types and placeholders.
@@ -65,7 +66,7 @@ export function TextField({
   type = "text",
   placeholder,
   onChange,
-  ...props
+  defaultValue,
 } : TextFieldProps) {
   return (
     <input
@@ -73,7 +74,7 @@ export function TextField({
       type={type}
       placeholder={placeholder}
       onChange={onChange}
-      {...props}
+      defaultValue={defaultValue}
     />
   )
 }

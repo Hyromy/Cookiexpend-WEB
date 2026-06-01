@@ -1,7 +1,9 @@
-import { useEffect, type SetStateAction } from "react"
+import { useCallback, useEffect, type SetStateAction } from "react"
 import { API_URL } from "../constants/config"
 import type { eventAction, eventData, eventModel } from "../types/events"
 import type { eventResponse, itemResponse } from "../types/api"
+
+type updatable = itemResponse & eventResponse
 
 /**
  * Custom React hook for subscribing to server-sent events (SSE) with optional filtering by event model and action. The hook establishes an EventSource connection to the specified API endpoint and listens for incoming events. It provides a callback function that is invoked whenever a relevant event is received, allowing components to react to real-time updates from the server.
@@ -58,7 +60,33 @@ export default function useEvent({ from, on, cb }: {
   }, [cb, from, on])
 }
 
-type updatable = itemResponse & eventResponse
+/**
+ * Custom React hook for handling Create, Update, and Delete (CUD) events with a state setter function.
+ * Designed to be used in conjunction with the useEvent hook, this helper function provides a convenient way to update component state based on incoming events that indicate when items have been created, updated, or deleted.
+ * 
+ * @param setter State setter function returned by useState for the relevant data array. This function will be used to update the state based on incoming events.
+ * 
+ * @example
+ * const [products, setProducts] = useState<productResponse[] | null>(null)
+ * 
+ * // This will subscribe to product events and automatically update the products state array based on created, updated, and deleted events
+ * useEvent({
+ *   from: ["product"],
+ *   cb: useEventOnCUD(setProducts)
+ * })
+ */
+export function useEventOnCUD<T extends updatable>(
+  setter: (data: SetStateAction<T[] | null>) => void,
+){
+  return useCallback((e: eventData) => {
+    const data = e.data as T
+    switch (e.action) {
+      case "created": return onAdd(setter, data)
+      case "updated": return onUpdate(setter, data)
+      case "deleted": return onDelete(setter, data)
+    }
+  }, [setter])
+}
 
 /**
  * Helper function to handle adding a new item to the state

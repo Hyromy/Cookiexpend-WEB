@@ -1,68 +1,64 @@
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { factoryService } from "../../services/cookiexpend"
-import useEvent, { onAdd, onDelete, onUpdate } from "../../hooks/useEvent"
+import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import type { establishmentRequest, establishmentResponse, factoryResponse } from "../../types/api"
 import { Button } from "../../components/Button"
 import { Form, TextField } from "../../components/Form"
 import { Table } from "../../components/Table"
 import { Pencil, Trash } from "lucide-react"
+import type { eventAction, eventData, eventModel } from "../../types/events"
+import { Dialog, Modal } from "../../components/Modal"
+
+const FACTORY_EVENTS = ["factory"] as eventModel[]
+const ESTABLISHMENT_EVENTS = ["establishment"] as eventModel[]
+const ON_EDITABLE_EVENTS = ["updated", "deleted"] as eventAction[]
 
 export default function Factories() {
   const { data, error, isLoading, request, setData } = useApi<factoryResponse[]>()
-
   const requestData = useCallback(() => request(factoryService.get()), [request])
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingFactory, setEditingFactory] = useState<factoryResponse | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [deletingFactory, setDeletingFactory] = useState<factoryResponse | null>(null)
 
   useEffect(() => { requestData() }, [requestData])
+  useEvent({
+    from: FACTORY_EVENTS,
+    cb: useEventOnCUD<factoryResponse>(setData)
+  })
+  useEvent({ 
+    from: ESTABLISHMENT_EVENTS,
+    on: ON_EDITABLE_EVENTS,
+    cb: useCallback((e) => establishmentEvents(e, setData), [setData])
+  })
 
-  useEvent({ from: ["factory"], cb: useCallback((e) => {
-    const data = e.data as factoryResponse
-    switch (e.action) {
-      case "created": return onAdd(setData, data)
-      case "updated": return onUpdate(setData, data)
-      case "deleted": return onDelete(setData, data)
-    }
-  }, [setData])})
-
-  useEvent({ from: ["establishment"], on: ["updated", "deleted"], cb: useCallback((e) => {
-    const data = e.data as establishmentResponse
-    switch (e.action) {
-      case "updated":
-        return setData((prev) => {
-          if (!prev) return prev
-          return prev.map(f => (
-            f.establishment.id == data.id
-              ? { ...f, establishment: data }
-              : f
-          ))
-        })
-
-      case "deleted":
-        return setData((prev) => {
-          if (!prev) return prev
-          return prev.filter(f => f.establishment.id != data.id)
-        })
-    }
-  }, [setData])})
-
-  const onEditHandler = (factory: factoryResponse) => {
-    alert("{pendiente} Editar planta: " + factory.establishment.name)
+  const openCreate = () => {
+    setEditingFactory(null)
+    setIsModalOpen(true)
   }
-  const onDeleteHandler = (factory: factoryResponse) => {
-    alert("{pendiente} Eliminar planta: " + factory.establishment.name)
+  const openEdit = (factory: factoryResponse) => {
+    setEditingFactory(factory)
+    setIsModalOpen(true)
   }
+  const openDelete = (factory: factoryResponse) => {
+    setDeletingFactory(factory)
+    setIsDialogOpen(true)
+  }
+
+  const btnAdd = <Button onClick={openCreate}>Agregar Planta</Button>
 
   return (
     <>
-      <FactoryForm />
       <StateGate
         data={data}
         error={error}
         loading={isLoading}
-        emptyProps={{ title: "Plantas" }}
+        emptyProps={{ title: "Plantas", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
+        {btnAdd}
         <Table
           headers={["Nombre", "Municipio", "Colonia", "Calle", "Número", "Acciones"]}
           data={data!}
@@ -73,48 +69,167 @@ export default function Factories() {
             x.establishment.street,
             x.establishment.number,
             <>
-              <Button onClick={() => onEditHandler(x)}><Pencil /></Button>
-              <Button onClick={() => onDeleteHandler(x)}><Trash /></Button>
+              <Button onClick={() => openEdit(x)}><Pencil /></Button>
+              <Button onClick={() => openDelete(x)}><Trash /></Button>
             </>
           ]}
         />
       </StateGate>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={(editingFactory ? "Editar" : "Agregar") + " planta"}
+      >
+        <FactoryForm
+          factory={editingFactory}
+          onDone={() => {
+            setEditingFactory(null)
+            setIsModalOpen(false)
+          }}
+        />
+      </Modal>
+      <DeleteDialog
+        isOpen={isDialogOpen}
+        setIsOpen={setIsDialogOpen}
+        factory={deletingFactory}
+        setFactory={setDeletingFactory}
+      />
     </>
   )
 }
 
-function FactoryForm() {
-  const { data, error, isLoading, request } = useApi<factoryResponse>()
-  
+type FactoryFormProps = {
+  factory: factoryResponse | null
+  onDone?: () => void
+}
+function FactoryForm({ factory, onDone }: FactoryFormProps) {
+  const { data, error, isLoading, request, setData } = useApi<establishmentRequest>()
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => { if (factory) setData(factory.establishment) }, [factory, setData])
   useEffect(() => {
-    if (data) {
+    if (submitted && data) {
       alert("Planta creada con exito!")
+      onDone?.()
+      setSubmitted(false)
     }
     if (error) {
       console.error(error)
       alert("Error al crear la planta")
+      setSubmitted(false)
     }
-  }, [data, error])
+  }, [data, error, onDone, submitted])
 
   const onSubmitHandler = (data: establishmentRequest) => {
     if (Object.values(data).some(v => !v)) {
-      alert("Por favor llena todos los campos")
+      alert("Por favor llena todos los campos antes de registrar")
       return
     }
-
-    request(factoryService.new({ establishment: data }))
+    
+    setSubmitted(true)
+    factory
+      ? request(factoryService.upd(factory.id, { establishment: data }))
+      : request(factoryService.new({ establishment: data }))
   }
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField name="municipality" placeholder="Municipio" />
-      <TextField name="name" placeholder="Nombre" />
-      <TextField name="neighborhood" placeholder="Colonia" />
-      <TextField name="street" placeholder="Calle" />
-      <TextField name="number" placeholder="Número" />
+      <TextField
+        name="municipality"
+        placeholder="Municipio"
+        defaultValue={factory?.establishment.municipality}
+      />
+      <TextField
+        name="name"
+        placeholder="Nombre"
+        defaultValue={factory?.establishment.name}
+      />
+      <TextField
+        name="neighborhood"
+        placeholder="Colonia"
+        defaultValue={factory?.establishment.neighborhood}
+      />
+      <TextField
+        name="street"
+        placeholder="Calle"
+        defaultValue={factory?.establishment.street}
+      />
+      <TextField
+        name="number"
+        placeholder="Número"
+        defaultValue={factory?.establishment.number}
+      />
       <Button type="submit" disabled={isLoading}>
         Enviar
       </Button>
     </Form>
   )
+}
+
+type DeleteDialogProps = {
+  isOpen: boolean
+  setIsOpen: (open: boolean) => void
+  factory: factoryResponse | null
+  setFactory: (factory: factoryResponse | null) => void
+}
+function DeleteDialog({
+  isOpen,
+  setIsOpen,
+  factory,
+  setFactory
+} : DeleteDialogProps) {
+  const { data, error, isLoading, request } = useApi()
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    if (submitted && data != null) {
+      alert("Planta eliminada con éxito!")
+      setFactory(null)
+      setIsOpen(false)
+      setSubmitted(false)
+    }
+    if (error) {
+      console.error(error)
+      alert("Error al eliminar la planta")
+      setIsOpen(false)
+    }
+  }, [data, error, setFactory, setIsOpen, submitted])
+
+  return (
+    <Dialog
+      title="Eliminar planta"
+      isOpen={isOpen}
+      onClose={() => setIsOpen(false)}
+      loading={isLoading}
+      blockMissClick
+      onConfirm={() => {
+        if (!factory) return
+        setSubmitted(true)
+        request(factoryService.del(factory.id))
+      }}
+    >
+      ¿Estás seguro que quieres eliminar la planta "{factory?.establishment.name}"?
+    </Dialog>
+  )
+}
+
+const establishmentEvents = (e: eventData, setData: Dispatch<SetStateAction<factoryResponse[] | null>>) => {
+  const data = e.data as establishmentResponse
+  switch (e.action) {
+    case "updated":
+      return setData((prev) => {
+        if (!prev) return prev
+        return prev.map(f => (
+          f.establishment.id == data.id
+            ? { ...f, establishment: data }
+            : f
+        ))
+      })
+
+    case "deleted":
+      return setData((prev) => {
+        if (!prev) return prev
+        return prev.filter(f => f.establishment.id != data.id)
+      })
+  }
 }
