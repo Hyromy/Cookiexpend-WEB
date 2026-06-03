@@ -103,22 +103,9 @@ type FactoryFormProps = {
   onDone?: () => void
 }
 function FactoryForm({ factory, onDone }: FactoryFormProps) {
-  const { data, error, isLoading, request, setData } = useApi<establishmentRequest>()
-  const [submitted, setSubmitted] = useState(false)
+  const { isLoading, request, setData } = useApi<establishmentRequest>()
 
   useEffect(() => { if (factory) setData(factory.establishment) }, [factory, setData])
-  useEffect(() => {
-    if (submitted && data) {
-      alert("Planta creada con exito!")
-      onDone?.()
-      setSubmitted(false)
-    }
-    if (error) {
-      console.error(error)
-      alert("Error al crear la planta")
-      setSubmitted(false)
-    }
-  }, [data, error, onDone, submitted])
 
   const onSubmitHandler = (data: establishmentRequest) => {
     if (Object.values(data).some(v => !v)) {
@@ -126,10 +113,19 @@ function FactoryForm({ factory, onDone }: FactoryFormProps) {
       return
     }
     
-    setSubmitted(true)
-    factory
+    (factory
       ? request(factoryService.upd(factory.id, { establishment: data }))
       : request(factoryService.new({ establishment: data }))
+    
+    ).then((response) => {
+      if (!response) return
+      alert("Planta creada con exito!")
+      onDone?.()
+    
+    }).catch((error) => {
+      console.error(error)
+      alert("Error al crear la planta")
+    })
   }
 
   return (
@@ -178,22 +174,20 @@ function DeleteDialog({
   factory,
   setFactory
 } : DeleteDialogProps) {
-  const { data, error, isLoading, request } = useApi()
-  const [submitted, setSubmitted] = useState(false)
+  const { isLoading, request } = useApi()
 
-  useEffect(() => {
-    if (submitted && data != null) {
-      alert("Planta eliminada con éxito!")
-      setFactory(null)
-      setIsOpen(false)
-      setSubmitted(false)
-    }
-    if (error) {
-      console.error(error)
-      alert("Error al eliminar la planta")
-      setIsOpen(false)
-    }
-  }, [data, error, setFactory, setIsOpen, submitted])
+  const requestDelete = () => {
+    if (!factory) return
+    request(factoryService.del(factory.id))
+      .then(() => {
+        setFactory(null)
+        setIsOpen(false)
+      })
+      .catch((error) => {
+        console.error(error)
+        alert("Error al eliminar la planta")
+      })
+  }
 
   return (
     <Dialog
@@ -202,11 +196,7 @@ function DeleteDialog({
       onClose={() => setIsOpen(false)}
       loading={isLoading}
       blockMissClick
-      onConfirm={() => {
-        if (!factory) return
-        setSubmitted(true)
-        request(factoryService.del(factory.id))
-      }}
+      onConfirm={requestDelete}
     >
       ¿Estás seguro que quieres eliminar la planta "{factory?.establishment.name}"?
     </Dialog>

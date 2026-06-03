@@ -1,52 +1,57 @@
-import { useCallback, useEffect, type SetStateAction } from "react"
+import { useCallback, useEffect, useState } from "react"
 import useApi from "../../hooks/useApi"
 import type { productRequest, productResponse } from "../../types/api"
 import { productService } from "../../services/cookiexpend"
-import useEvent, { onAdd, onDelete, onUpdate } from "../../hooks/useEvent"
+import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
 import { Form, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
 import { Table } from "../../components/Table"
 import { Pencil, Trash } from "lucide-react"
+import type { eventModel } from "../../types/events"
+import { Dialog, Modal } from "../../components/Modal"
+
+const PRODUCT_EVENTS = ["product"] as eventModel[]
 
 export default function Products() {
   const { data, error, isLoading, request, setData } = useApi<productResponse[]>()
-  
   const requestData = useCallback(() => request(productService.get()), [request])
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<productResponse | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [deletingProduct, setDeletingProduct] = useState<productResponse | null>(null)
 
   useEffect(() => { requestData() }, [requestData])
+  useEvent({
+    from: PRODUCT_EVENTS,
+    cb: useEventOnCUD<productResponse>(setData)
+  })
 
-  useEffect(() => {
-    if (error) {
-      console.log("Failed to fetch products: " + error.message)
-    }
-  }, [error])
-
-  useEvent({ from: ["product"], cb: useCallback((e) => {
-    const data = e.data as productResponse
-    switch (e.action) {
-      case "created": return onAdd(setData, data)
-      case "updated": return onUpdate(setData, data)
-      case "deleted": return onDelete(setData, data)
-    }
-  }, [setData])})
-
-  const onEditHandler = (product: productResponse) => {
-    alert("{pendiente} Editar producto: " + product.name)
+  const openCreate = () => {
+    setEditingProduct(null)
+    setIsModalOpen(true)
   }
-  const onDeleteHandler = (product: productResponse) => {
-    alert("{pendiente} Eliminar producto: " + product.name)
+  const openEdit = (product: productResponse) => {
+    setEditingProduct(product)
+    setIsModalOpen(true)
   }
+  const openDelete = (product: productResponse) => {
+    setDeletingProduct(product)
+    setIsDialogOpen(true)
+  }
+
+  const btnAdd = <Button onClick={openCreate}>Agregar Producto</Button>
 
   return (
     <>
-      <ProductForm setter={setData} />
       <StateGate
         data={data}
         error={error}
         loading={isLoading}
+        emptyProps={{ title: "Productos", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
+        {btnAdd}
         <Table
           headers={["Nombre", "Precio", "Acciones"]}
           data={data!}
@@ -54,45 +59,125 @@ export default function Products() {
             x.name,
             x.price,
             <>
-              <Button onClick={() => onEditHandler(x)}><Pencil /></Button>
-              <Button onClick={() => onDeleteHandler(x)}><Trash /></Button>
+              <Button onClick={() => openEdit(x)}><Pencil /></Button>
+              <Button onClick={() => openDelete(x)}><Trash /></Button>
             </>
           ]}
         />
       </StateGate>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={(editingProduct ? "Editar" : "Agregar") + " producto"}
+      >
+        <ProductForm
+          product={editingProduct}
+          onDone={() => {
+            setEditingProduct(null)
+            setIsModalOpen(false)
+          }}
+        />
+      </Modal>
+      <DeleteDialog
+        isOpen={isDialogOpen}
+        setIsOpen={setIsDialogOpen}
+        product={deletingProduct}
+        setProduct={setDeletingProduct}
+      />
     </>
   )
 }
 
-function ProductForm({ setter }: { setter: (data: SetStateAction<productResponse[] | null>) => void }) {
-  const { data, error, isLoading, request } = useApi()
+type ProductFormProps = {
+  product: productResponse | null,
+  onDone?: () => void
+}
+function ProductForm({ product, onDone }: ProductFormProps) {
+  const { isLoading, request, setData } = useApi()
 
-  useEffect(() => {
-    if (error) {
-      console.log("Failed to create product: " + error.message)
+  useEffect(() => { if (product) setData(product) }, [product, setData])
+
+  const onSubmitHandler = (data: productRequest) => {
+    if (Object.values(data).some(v => !v)) {
+      alert("Por favor llena todos los campos antes de registrar")
+      return
     }
-
-    if (data) {
-      onAdd(setter, data as productResponse)
-    }
-  }, [error, data, setter])
-
-  const onSubmitHandler = (product: productRequest) => {
-    if (product.name == "" || parseFloat(product.price) <= 0) {
-      alert("Por favor, ingrese un nombre y un precio válidos.")
+    if (parseFloat(data.price) <= 0) {
+      alert("Por favor, ingrese un precio válido")
       return
     }
 
-    request(productService.new(product))
+    (product
+      ? request(productService.upd(product.id, data))
+      : request(productService.new(data))
+
+    ).then((response) => {
+      if (!response) return
+      alert("Producto creado con exito!")
+      onDone?.()
+
+    }).catch((error) => {
+      console.error(error)
+      alert("Error al crear el producto")
+    })
   }
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField name="name" placeholder="nombre" />
-      <TextField name="price" placeholder="precio" />
+      <TextField
+        name="name"
+        placeholder="nombre"
+        defaultValue={product?.name}  
+      />
+      <TextField
+        name="price"
+        placeholder="precio"
+        defaultValue={product?.price}  
+      />
       <Button type="submit" disabled={isLoading}>
         Enviar
       </Button>
     </Form>
+  )
+}
+
+type DeleteDialogProps = {
+  isOpen: boolean
+  setIsOpen: (open: boolean) => void
+  product: productResponse | null
+  setProduct: (product: productResponse | null) => void
+}
+function DeleteDialog({
+  isOpen,
+  setIsOpen,
+  product,
+  setProduct
+} : DeleteDialogProps) {
+  const { isLoading, request } = useApi()
+
+  const requestDelete = () => {
+    if (!product) return
+    request(productService.del(product.id))
+      .then(() => {
+        setProduct(null)
+        setIsOpen(false)
+      })
+      .catch((error) => {
+        console.error(error)
+        alert("Error al eliminar el producto")
+      })
+  }
+
+  return (
+    <Dialog
+      title="Eliminar producto"
+      isOpen={isOpen}
+      onClose={() => setIsOpen(false)}
+      loading={isLoading}
+      blockMissClick
+      onConfirm={requestDelete}
+    >
+      ¿Estás seguro que deseas eliminar el producto "{product?.name}"?
+    </Dialog>
   )
 }

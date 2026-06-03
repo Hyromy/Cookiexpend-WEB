@@ -103,22 +103,9 @@ type StoreFormProps = {
   onDone?: () => void
 }
 function StoreForm({ store, onDone }: StoreFormProps) {
-  const { data, error, isLoading, request, setData } = useApi<storeResponse>()
-  const [submitted, setSubmitted] = useState(false)
+  const { isLoading, request, setData } = useApi<storeResponse>()
 
   useEffect(() => { if (store) setData(store) }, [store, setData])
-  useEffect(() => {
-    if (submitted && data) {
-      alert("Expendio creado con exito!")
-      onDone?.()
-      setSubmitted(false)
-    }
-    if (error) {
-      console.error(error)
-      alert("Error al crear el expendio")
-      setSubmitted(false)
-    }
-  }, [data, error, onDone, submitted])
 
   const onSubmitHandler = (data: establishmentRequest) => {
     if (Object.values(data).some(v => !v)) {
@@ -126,10 +113,19 @@ function StoreForm({ store, onDone }: StoreFormProps) {
       return
     }
 
-    setSubmitted(true)
-    store
+    (store
       ? request(storeService.upd(store.id, { establishment: data }))
       : request(storeService.new({ establishment: data }))
+    
+    ).then((response) => {
+      if (!response) return
+      alert("Expendio creado con exito!")
+      onDone?.()
+
+    }).catch((error) => {
+      console.error(error)
+      alert("Error al crear el expendio")
+    })
   }
 
   return (
@@ -178,10 +174,9 @@ function DeleteDialog({
   store,
   setStore
 }: DeleteDialogProps) {
-  const { data, error, isLoading, request } = useApi()
-  const [submitted, setSubmitted] = useState(false)
+  const { isLoading, request } = useApi()
 
-  useEffect(() => {
+  /* useEffect(() => {
     if (submitted && data != null) {
       alert("Expendio eliminado con exito!")
       setStore(null)
@@ -193,7 +188,21 @@ function DeleteDialog({
       alert("Error al eliminar el expendio")
       setSubmitted(false)
     }
-  }, [data, error, setStore, setIsOpen, submitted])
+  }, [data, error, setStore, setIsOpen, submitted]) */
+
+  const requestDelete = () => {
+    if (!store) return
+    request(storeService.del(store.id))
+      .then(() => {
+        alert("Expendio eliminado con exito!")
+        setStore(null)
+        setIsOpen(false)
+      })
+      .catch((error) => {
+        console.error(error)
+        alert("Error al eliminar el expendio")
+      })
+  }
 
   return (
     <Dialog
@@ -202,14 +211,9 @@ function DeleteDialog({
       onClose={() => setIsOpen(false)}
       loading={isLoading}
       blockMissClick
-      onConfirm={() => {
-        console.log(store)
-        if (!store) return
-        setSubmitted(true)
-        request(storeService.del(store.id))
-      }}
+      onConfirm={requestDelete}
     >
-      <p>¿Estás seguro que quieres eliminar el expendio {store?.establishment.name}?</p>
+      ¿Estás seguro que quieres eliminar el expendio {store?.establishment.name}?
     </Dialog>
   )
 }

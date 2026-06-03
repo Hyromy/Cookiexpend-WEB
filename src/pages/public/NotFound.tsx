@@ -13,7 +13,6 @@ export default function NotFound() {
     }
   }
 
-  console.log(history)
   return (
     <section className="flex flex-col gap-2 items-center justify-center h-screen">
       <p className="text-3xl">

@@ -95,7 +95,7 @@ class ProductService {
     return api.post(this.endpoint, data)
   }
 
-  update(id: string | number, data: apiType.productRequest): Promise<apiType.productResponse> {
+  upd(id: string | number, data: apiType.productRequest): Promise<apiType.productResponse> {
     return api.patch(this.endpoint + param(id), data)
   }
 
