@@ -114,6 +114,14 @@ class DeliveryService {
   new(data: apiType.deliveryRequest): Promise<apiType.deliveryResponse> {
     return api.post(this.endpoint, data)
   }
+
+  upd(id: string | number, data: apiType.deliveryRequest): Promise<apiType.deliveryResponse> {
+    return api.patch(this.endpoint + param(id), data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
 }
 
 class InventoryService {

@@ -83,15 +83,17 @@ type SelectFieldProps = {
   name: string
   options: { value: string, label: string }[]
   placeholder?: string
+  selected?: string
 }
 
 export function SelectField({
   name,
   options,
   placeholder,
+  selected
 }: SelectFieldProps) {
   return (
-    <select name={name}>
+    <select name={name} defaultValue={selected}>
       {placeholder && <option value="">{placeholder}</option>}
       {options.map((option) => (
         <option key={option.value} value={option.value}>
