@@ -74,6 +74,14 @@ class StoreService {
   new(data: apiType.storeRequest): Promise<apiType.storeResponse> {
     return api.post(this.endpoint, data)
   }
+
+  upd(id: string | number, data: apiType.storeRequest): Promise<apiType.storeResponse> {
+    return api.patch(this.endpoint + param(id), data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
 }
 
 class ProductService {
