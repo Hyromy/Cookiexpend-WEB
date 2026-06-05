@@ -1,4 +1,4 @@
-import { type ChangeEvent, type Dispatch, type SetStateAction, useCallback, useEffect, useRef, useState } from "react"
+import { type ChangeEvent, type Dispatch, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import type { deliveryRequest, deliveryResponse, establishmentResponse, factoryResponse, packageResponse, productResponse, storeResponse } from "../../types/api"
@@ -7,7 +7,7 @@ import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { Form, SelectField, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
 import { Table } from "../../components/Table"
-import { Pencil, Trash } from "lucide-react"
+import { Pencil, Trash, Check } from "lucide-react"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 
@@ -19,10 +19,10 @@ const ON_EDITABLE_EVENTS = ["updated", "deleted"] as eventAction[]
 export default function Deliveries() {
   const { data, error, isLoading, request, setData } = useApi<deliveryResponse[]>()
   const requestData = useCallback(() => request(deliveryService.get()), [request])
+  const [operation, setOperation] = useState<"create" | "edit" | "delete" | "status" | null>(null)
+  const [currentDelivery, setCurrentDelivery] = useState<deliveryResponse | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingDelivery, setEditingDelivery] = useState<deliveryResponse | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [deletingDelivery, setDeletingDelivery] = useState<deliveryResponse | null>(null)
 
   useEffect(() => { requestData() }, [requestData])
   useEvent({
@@ -41,16 +41,30 @@ export default function Deliveries() {
   })
 
   const openCreate = () => {
-    setEditingDelivery(null)
+    setCurrentDelivery(null)
+    setOperation("create")
     setIsModalOpen(true)
   }
   const openEdit = (delivery: deliveryResponse) => {
-    setEditingDelivery(delivery)
+    setCurrentDelivery(delivery)
+    setOperation("edit")
     setIsModalOpen(true)
   }
   const openDelete = (delivery: deliveryResponse) => {
-    setDeletingDelivery(delivery)
+    setCurrentDelivery(delivery)
+    setOperation("delete")
     setIsDialogOpen(true)
+  }
+  const openStatus = (delivery: deliveryResponse) => {
+    setCurrentDelivery(delivery)
+    setOperation("status")
+    setIsDialogOpen(true)
+  }
+  const clear = () => {
+    setCurrentDelivery(null)
+    setOperation(null)
+    setIsModalOpen(false)
+    setIsDialogOpen(false)
   }
 
   const btnAdd = <Button onClick={openCreate}>Agregar Reparto</Button>
@@ -66,38 +80,39 @@ export default function Deliveries() {
       >
         {btnAdd}
         <Table
-          headers={["ID", "Planta", "Expendio", "Productos", "Acciones"]}
+          headers={["ID", "Planta", "Expendio", "Estado", "Productos", "Acciones"]}
           data={data!}
           row={x => [
             x.id,
             x.factory.establishment.name,
             x.store.establishment.name,
+            x.status.name,
             x.package.map(p => `${p.product.name} (x${p.quantity})`).join(", "),
-            <>
-              <Button onClick={() => openEdit(x)}><Pencil /></Button>
-              <Button onClick={() => openDelete(x)}><Trash /></Button>
-            </>
+            !x.status.name.includes("completed") && (
+              <>
+                <Button onClick={() => openEdit(x)}><Pencil /></Button>
+                <Button onClick={() => openDelete(x)}><Trash /></Button>
+                <Button onClick={() => openStatus(x)}><Check /></Button>
+              </>
+            )
           ]}
         />
       </StateGate>
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={(editingDelivery ? "Editar" : "Agregar") + " reparto"}
+        onClose={clear}
+        title={(currentDelivery ? "Editar" : "Agregar") + " reparto"}
       >
         <DeliveryForm
-          delivery={editingDelivery}
-          onDone={() => {
-            setEditingDelivery(null)
-            setIsModalOpen(false)
-          }}
+          delivery={currentDelivery}
+          onDone={clear}
         />
       </Modal>
-      <DeleteDialog
+      <ThisDialog
         isOpen={isDialogOpen}
-        setIsOpen={setIsDialogOpen}
-        delivery={deletingDelivery}
-        setDelivery={setDeletingDelivery}
+        delivery={currentDelivery}
+        operation={operation as "delete" | "status"}
+        onDone={clear}
       />
     </>
   )
@@ -115,7 +130,7 @@ function DeliveryForm({ delivery, onDone }: DeliveryFormProps) {
     if (delivery) { 
       setData(delivery)
     }
-  }, [delivery])
+  }, [delivery, setData])
 
   const parseData = (data: deliveryRequest) => {
     for (const key in data) {
@@ -164,6 +179,7 @@ function DeliveryForm({ delivery, onDone }: DeliveryFormProps) {
         defaultValue={delivery?.factory.id.toString()}
       />
       <ProductList
+        key={delivery?.id ?? "new"}
         onChange={setPackages}
         defaultValue={delivery?.package}
       />
@@ -219,19 +235,17 @@ type ProductListProps = {
 }
 function ProductList({ onChange, defaultValue }: ProductListProps) {
   const { data, isLoading, request } = useApi<productResponse[]>()
-  const [quantities, setQuantities] = useState<Record<number, number>>({})
+  const initialQuantities = useMemo(() => {
+    const initial: Record<number, number> = {}
+    defaultValue?.forEach(pkg => {
+      initial[pkg.product.id] = pkg.quantity
+    })
+    return initial
+  }, [defaultValue])
+  const [quantities, setQuantities] = useState<Record<number, number>>(initialQuantities)
 
   useEffect(() => { request(productService.get()) }, [request])
-  useEffect(() => {
-    if (data && defaultValue) {
-      const initial: Record<number, number> = {}
-      defaultValue.forEach(pkg => {
-        initial[pkg.product.id] = pkg.quantity
-      })
-      setQuantities(initial)
-      onChange(initial)
-    }
-  }, [data, defaultValue, onChange])
+  useEffect(() => { if (data) onChange(initialQuantities) }, [data, initialQuantities, onChange])
 
   const handleQuantityChange = (id: number, val: string) => {
     const num = Math.max(0, parseInt(val) || 0)
@@ -260,43 +274,60 @@ function ProductList({ onChange, defaultValue }: ProductListProps) {
   )
 }
 
-type DeleteDialogProps = {
+type ThisDialogProps = {
   isOpen: boolean
-  setIsOpen: (open: boolean) => void
   delivery: deliveryResponse | null
-  setDelivery: (delivery: deliveryResponse | null) => void
+  operation: "delete" | "status"
+  onDone: () => void
 }
-function DeleteDialog({
+function ThisDialog({
   isOpen,
-  setIsOpen,
   delivery,
-  setDelivery
-}: DeleteDialogProps) {
-  const { isLoading, request } = useApi()
+  operation,
+  onDone
+}: ThisDialogProps) {
+  const { isLoading, request } = useApi<void | deliveryResponse>()
+
+  const errorHandler = (error: Error, msg: string) => {
+    console.error(error)
+    alert(msg)
+  }
 
   const requestDelete = () => {
-    if (!delivery) return
-    request(deliveryService.del(delivery.id))
-      .then(() => {
-        setDelivery(null)
-        setIsOpen(false)
-      })
-      .catch((error) => {
-        console.error(error)
-        alert("Error al eliminar el reparto")
-      })
+    request(deliveryService.del(delivery!.id))
+      .then(onDone)
+      .catch((error) => errorHandler(error, "Error al eliminar el reparto"))
   }
+  const requestStatusChange = () => {
+    request(deliveryService.changeStatus(delivery!.id, "completed"))
+      .then(() => {
+        alert("Reparto marcado como completado")
+        onDone()
+      })
+      .catch((error) => errorHandler(error, "Error al cambiar el estado del reparto"))
+  }
+
+  const isDelete = operation == "delete"
 
   return (
     <Dialog
-      title="Eliminar reparto"
+      title={(isDelete ? "Eliminar" : "Cambiar estado del ") + " reparto"}
       isOpen={isOpen}
-      onClose={() => setIsOpen(false)}
+      onClose={onDone}
       loading={isLoading}
       blockMissClick
-      onConfirm={requestDelete}
+      onConfirm={() => {
+        if (!delivery) {
+          return alert("Error: No se encontró el reparto")
+        }
+        if (isDelete) {
+          requestDelete()
+          return
+        }
+        requestStatusChange()
+      }}
     >
-      ¿Estás seguro que quieres eliminar el reparto con ID "{delivery?.id}"?
+      ¿Estás seguro que quieres {isDelete ? "eliminar" : "cambiar el estado de"} el reparto con ID "{delivery?.id}"?
     </Dialog>
   )
 }

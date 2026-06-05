@@ -1,3 +1,4 @@
+import type { statusName } from "../types/api"
 import * as apiType from "../types/api"
 import { api } from "./api"
 
@@ -121,6 +122,10 @@ class DeliveryService {
 
   del(id: string | number): Promise<void> {
     return api.delete(this.endpoint + param(id))
+  }
+
+  changeStatus(id: string | number, status: statusName): Promise<apiType.deliveryResponse> {
+    return api.patch(this.endpoint + param(id) + "status/", { status })
   }
 }
 
