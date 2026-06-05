@@ -7,7 +7,7 @@ import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { Form, SelectField, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
 import { Table } from "../../components/Table"
-import { Pencil, Trash, Check } from "lucide-react"
+import { Pencil, Trash, Check, CircleSlash } from "lucide-react"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 
@@ -23,6 +23,7 @@ export default function Deliveries() {
   const [currentDelivery, setCurrentDelivery] = useState<deliveryResponse | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [statusStep, setStatusStep] = useState<1 | -1>(1)
 
   useEffect(() => { requestData() }, [requestData])
   useEvent({
@@ -66,6 +67,55 @@ export default function Deliveries() {
     setIsModalOpen(false)
     setIsDialogOpen(false)
   }
+  const renderActionButtons = (delivery: deliveryResponse) => {
+    const upd = <Button onClick={() => openEdit(delivery)}><Pencil /></Button>
+    const status = (
+      <Button
+        onClick={() => {
+          setStatusStep(1)
+          openStatus(delivery)
+        }}
+      >
+        <Check />
+      </Button>
+    )
+    const allButtons = (
+      <>
+        {upd}
+        <Button onClick={() => openDelete(delivery)}><Trash /></Button>
+        {status}
+      </>
+    )
+
+    switch(delivery.status.name) {
+      case "pending":
+        return allButtons
+
+      case "in_progress":
+        return (
+          <>
+            <Button
+            onClick={() => {
+              setStatusStep(-1)
+              openStatus(delivery)
+            }}
+            >
+              <CircleSlash />
+            </Button>
+            {status}
+          </>
+        )
+
+      case "completed":
+        return null
+
+      case "cancelled":
+        return allButtons
+
+      default:
+        return null
+    }
+  }
 
   const btnAdd = <Button onClick={openCreate}>Agregar Reparto</Button>
 
@@ -88,13 +138,7 @@ export default function Deliveries() {
             x.store.establishment.name,
             x.status.name,
             x.package.map(p => `${p.product.name} (x${p.quantity})`).join(", "),
-            !x.status.name.includes("completed") && (
-              <>
-                <Button onClick={() => openEdit(x)}><Pencil /></Button>
-                <Button onClick={() => openDelete(x)}><Trash /></Button>
-                <Button onClick={() => openStatus(x)}><Check /></Button>
-              </>
-            )
+            renderActionButtons(x)
           ]}
         />
       </StateGate>
@@ -113,6 +157,7 @@ export default function Deliveries() {
         delivery={currentDelivery}
         operation={operation as "delete" | "status"}
         onDone={clear}
+        statusStep={statusStep}
       />
     </>
   )
@@ -278,12 +323,14 @@ type ThisDialogProps = {
   isOpen: boolean
   delivery: deliveryResponse | null
   operation: "delete" | "status"
+  statusStep: 1 | -1
   onDone: () => void
 }
 function ThisDialog({
   isOpen,
   delivery,
   operation,
+  statusStep,
   onDone
 }: ThisDialogProps) {
   const { isLoading, request } = useApi<void | deliveryResponse>()
@@ -299,9 +346,9 @@ function ThisDialog({
       .catch((error) => errorHandler(error, "Error al eliminar el reparto"))
   }
   const requestStatusChange = () => {
-    request(deliveryService.changeStatus(delivery!.id, "completed"))
+    request(deliveryService.changeStatus(delivery!.id, statusStep))
       .then(() => {
-        alert("Reparto marcado como completado")
+        alert("Estado del reparto cambiado con exito!")
         onDone()
       })
       .catch((error) => errorHandler(error, "Error al cambiar el estado del reparto"))
@@ -320,11 +367,8 @@ function ThisDialog({
         if (!delivery) {
           return alert("Error: No se encontró el reparto")
         }
-        if (isDelete) {
-          requestDelete()
-          return
-        }
-        requestStatusChange()
+        if (isDelete) requestDelete()
+        else requestStatusChange()
       }}
     >
       ¿Estás seguro que quieres {isDelete ? "eliminar" : "cambiar el estado de"} el reparto con ID "{delivery?.id}"?

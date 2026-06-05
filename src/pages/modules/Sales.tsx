@@ -6,108 +6,81 @@ import { Form, SelectField, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
 import { productService, saleService, storeService } from "../../services/cookiexpend"
 import type { productResponse, saleRequest, saleResponse, storeResponse } from "../../types/api"
-import useEvent, { onAdd, onDelete, onUpdate } from "../../hooks/useEvent"
+import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
+import type { eventModel } from "../../types/events"
+import { Modal } from "../../components/Modal"
 
-type rawSaleData = {
-  store: string
-  [key: `product-${number}`]: string
-}
+const SALE_EVENTS = ["sale"] as eventModel[]
 
 export default function Sales() {
   const { data, error, isLoading, request, setData } = useApi<saleResponse[]>()
-
   const requestData = useCallback(() => request(saleService.get()), [request])
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => { requestData() }, [requestData])
+  useEvent({
+    from: SALE_EVENTS,
+    cb: useEventOnCUD<saleResponse>(setData)
+  })
 
-  useEvent({ from: ["sale"], cb: useCallback(e => {
-    const data = e.data as saleResponse
-    switch (e.action) {
-      case "created": return onAdd(setData, data)
-      case "updated": return onUpdate(setData, data)
-      case "deleted": return onDelete(setData, data)
-    }
-  }, [setData]) })
+  const openSale = () => {
+    setIsModalOpen(true)
+  }
+
+  const btnSale = <Button onClick={openSale}>Registrar Nueva Venta</Button>
 
   return (
     <>
-      <SalesForm />
       <StateGate
         data={data}
         error={error}
         loading={isLoading}
-        emptyProps={{ title: "Ventas" }}
+        emptyProps={{ title: "Ventas", content: btnSale }}
         errorProps={{ onRetry: requestData }}
       >
+        {btnSale}
         <Table
           headers={["ID", "Expendio", "Detalles", "Fecha", "Total"]}
           data={data!}
           row={x => [
             x.id,
             x.store.establishment.name,
-            x.details.map(d => `${d.product.name} x${d.quantity}`).join(", "),
+            x.details.map(d => `${d.product.name} $${d.price} x${d.quantity}`).join(", "),
             x.date,
             x.total
           ]}
         />
       </StateGate>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        blockMissClick
+        title="Registrar nueva venta"
+      >
+        <SalesForm onDone={() => setIsModalOpen(false)} />
+      </Modal>
     </>
   )
 }
 
-const parseData = (data: rawSaleData): saleRequest => {
-  const products = Object.keys(data)
-    .filter(key => key.startsWith("product-"))
-    .map(key => ({
-      product: key.replace("product-", ""),
-      quantity: parseInt(data[key as `product-${number}`])
-    }))
-    .filter(p => p.quantity > 0)
-
-  return {
-    store: data.store,
-    products
-  }
+type rawSaleData = {
+  store: string
+  [key: `product-${number}`]: string
 }
 
-const validateData = (data: saleRequest): boolean => {
-  if (!data.store) {
-    alert("Por favor, selecciona un expendio")
-    return false
-  }
-
-  if (data.products.length <= 0) {
-    alert("Por favor, ingresa al menos una cantidad para vender")
-    return false
-  }
-
-  return true
+type SalesFormProps = {
+  onDone: () => void
 }
-
-function SalesForm() {
+function SalesForm({
+  onDone
+}: SalesFormProps) {
   const [quantities, setQuantities] = useState<Record<number, number>>({})
   const { data, request } = useApi<productResponse[]>()
+  const { isLoading: pushLoading, request: pushRequest } = useApi<saleResponse>()
 
-  const {
-    error: pushError,
-    isLoading: pushLoading,
-    request: pushRequest
-  } = useApi<saleResponse>()
+  useEffect(() => { request(productService.get()) }, [request])
 
-  const clearForm = () => {
-    setQuantities({})
-  }
-
-  useEffect(() => {
-    request(productService.get())
-  }, [request])
-
-  useEffect(() => {
-    if (pushError) {
-      console.error("Error al registrar la venta: ", pushError)
-      alert("Ocurrió un error al registrar la venta. Por favor, intenta de nuevo.")
-    }
-  }, [pushError])
+  const clearForm = () => setQuantities({})
 
   const handleQuantityChange = (productId: number, quantity: string) => {
     setQuantities(prev => ({
@@ -125,11 +98,16 @@ function SalesForm() {
     const parsedData = parseData(data)
     if (!validateData(parsedData)) return
 
-    const response = await pushRequest(saleService.new(parsedData))
-    if (response) {
+    pushRequest(saleService.new(parsedData))
+    .then(() => {
       alert("Venta registrada exitosamente")
       clearForm()
-    }
+      onDone()
+    })
+    .catch((error) => {
+      console.error(error)
+      alert("Ocurrió un error al registrar la venta. Por favor, intenta de nuevo.")
+    })
   }
 
   return (
@@ -216,4 +194,33 @@ function PriceDisplay({ total }: { total: number }) {
       <span>${total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
     </div>
   )
+}
+
+const parseData = (data: rawSaleData): saleRequest => {
+  const products = Object.keys(data)
+    .filter(key => key.startsWith("product-"))
+    .map(key => ({
+      product: key.replace("product-", ""),
+      quantity: parseInt(data[key as `product-${number}`])
+    }))
+    .filter(p => p.quantity > 0)
+
+  return {
+    store: data.store,
+    products
+  }
+}
+
+const validateData = (data: saleRequest): boolean => {
+  if (!data.store) {
+    alert("Por favor, selecciona un expendio")
+    return false
+  }
+
+  if (data.products.length <= 0) {
+    alert("Por favor, ingresa al menos una cantidad para vender")
+    return false
+  }
+
+  return true
 }

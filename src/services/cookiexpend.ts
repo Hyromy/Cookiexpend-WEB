@@ -124,8 +124,10 @@ class DeliveryService {
     return api.delete(this.endpoint + param(id))
   }
 
-  changeStatus(id: string | number, status: statusName): Promise<apiType.deliveryResponse> {
-    return api.patch(this.endpoint + param(id) + "status/", { status })
+  changeStatus(id: string | number, step: 1 | -1): Promise<apiType.deliveryResponse> {
+    const status: statusName = "completed"
+    
+    return api.patch(this.endpoint + param(id) + "status/", { step, status })
   }
 }
 
@@ -159,6 +161,7 @@ class UserService {
 
 export const healthService = Object.freeze(new HealthService())
 export const authService = Object.freeze(new AuthService())
+
 export const factoryService = Object.freeze(new FactoryService())
 export const storeService = Object.freeze(new StoreService())
 export const productService = Object.freeze(new ProductService())
