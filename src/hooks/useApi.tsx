@@ -78,6 +78,7 @@ export default function useApi<T = ApiData>(options: UseApiOptions = {}) {
   const request = useCallback(async <TResults extends unknown[]>(
     ...apiCalls: { [K in keyof TResults]: RequestSource<TResults[K]> }
   ): Promise<RequestResult<TResults> | null> => {
+    const shouldPreserveDataOnError = apiCalls.length > 1
     const requestId = activeRequestId.current + 1
     activeRequestId.current = requestId
 
@@ -126,7 +127,9 @@ export default function useApi<T = ApiData>(options: UseApiOptions = {}) {
       }
 
       if (isMountedRef.current && activeRequestId.current == requestId) {
-        setData(null)
+        if (!shouldPreserveDataOnError) {
+          setData(null)
+        }
         setError(parseError(err))
       }
       return null
