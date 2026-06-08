@@ -10,7 +10,7 @@ import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import type { eventModel } from "../../types/events"
 import { Modal } from "../../components/Modal"
 
-const SALE_EVENTS = ["sale"] as eventModel[]
+const SALE_EVENTS = ["sell"] as eventModel[]
 
 export default function Sales() {
   const { data, error, isLoading, request, setData } = useApi<saleResponse[]>()
