@@ -1,3 +1,4 @@
+import type { statusName } from "../types/api"
 import * as apiType from "../types/api"
 import { api } from "./api"
 
@@ -54,6 +55,14 @@ class FactoryService {
   new(data: apiType.factoryRequest): Promise<apiType.factoryResponse> {
     return api.post(this.endpoint, data)
   }
+
+  upd(id: string | number, data: apiType.factoryRequest): Promise<apiType.factoryResponse> {
+    return api.patch(this.endpoint + param(id), data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
 }
 
 class StoreService {
@@ -65,6 +74,14 @@ class StoreService {
 
   new(data: apiType.storeRequest): Promise<apiType.storeResponse> {
     return api.post(this.endpoint, data)
+  }
+
+  upd(id: string | number, data: apiType.storeRequest): Promise<apiType.storeResponse> {
+    return api.patch(this.endpoint + param(id), data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
   }
 }
 
@@ -79,7 +96,7 @@ class ProductService {
     return api.post(this.endpoint, data)
   }
 
-  update(id: string | number, data: apiType.productRequest): Promise<apiType.productResponse> {
+  upd(id: string | number, data: apiType.productRequest): Promise<apiType.productResponse> {
     return api.patch(this.endpoint + param(id), data)
   }
 
@@ -97,6 +114,20 @@ class DeliveryService {
 
   new(data: apiType.deliveryRequest): Promise<apiType.deliveryResponse> {
     return api.post(this.endpoint, data)
+  }
+
+  upd(id: string | number, data: apiType.deliveryRequest): Promise<apiType.deliveryResponse> {
+    return api.patch(this.endpoint + param(id), data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
+
+  changeStatus(id: string | number, step: 1 | -1): Promise<apiType.deliveryResponse> {
+    const status: statusName = "completed"
+    
+    return api.patch(this.endpoint + param(id) + "status/", { step, status })
   }
 }
 
@@ -130,6 +161,7 @@ class UserService {
 
 export const healthService = Object.freeze(new HealthService())
 export const authService = Object.freeze(new AuthService())
+
 export const factoryService = Object.freeze(new FactoryService())
 export const storeService = Object.freeze(new StoreService())
 export const productService = Object.freeze(new ProductService())

@@ -1,68 +1,64 @@
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import type { establishmentRequest, establishmentResponse, storeResponse } from "../../types/api"
 import { storeService } from "../../services/cookiexpend"
-import useEvent, { onAdd, onDelete, onUpdate } from "../../hooks/useEvent"
+import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { Form, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
 import { Table } from "../../components/Table"
 import { Pencil, Trash } from "lucide-react"
+import type { eventAction, eventData, eventModel } from "../../types/events"
+import { Dialog, Modal } from "../../components/Modal"
+
+const STORE_EVENTS = ["store"] as eventModel[]
+const ESTABLISHMENT_EVENTS = ["establishment"] as eventModel[]
+const ON_EDITABLE_EVENTS = ["updated", "deleted"] as eventAction[]
 
 export default function Stores() {
   const { data, error, isLoading, request, setData } = useApi<storeResponse[]>()
-  
   const requestData = useCallback(() => request(storeService.get()), [request])
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingStore, setEditingStore] = useState<storeResponse | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [deletingStore, setDeletingStore] = useState<storeResponse | null>(null)
   
   useEffect(() => { requestData() }, [requestData])
+  useEvent({ 
+    from: STORE_EVENTS,
+    cb: useEventOnCUD<storeResponse>(setData)
+  })
+  useEvent({ 
+    from: ESTABLISHMENT_EVENTS,
+    on: ON_EDITABLE_EVENTS,
+    cb: useCallback((e) => establishmentEvents(e, setData), [setData])
+  })
 
-  useEvent({ from: ["store"], cb: useCallback((e) => {
-    const data = e.data as storeResponse
-    switch (e.action) {
-      case "created": return onAdd(setData, data)
-      case "updated": return onUpdate(setData, data)
-      case "deleted": return onDelete(setData, data)
-    }
-  }, [setData])})
-
-  useEvent({ from: ["establishment"], on: ["updated", "deleted"], cb: useCallback((e) => {
-    const data = e.data as establishmentResponse
-    switch (e.action) {
-      case "updated":
-        return setData((prev) => {
-          if (!prev) return prev
-          return prev.map(f => (
-            f.establishment.id == data.id
-              ? { ...f, establishment: data }
-              : f
-          ))
-        })
-
-      case "deleted":
-        return setData((prev) => {
-          if (!prev) return prev
-          return prev.filter(f => f.establishment.id != data.id)
-        })
-    }
-  }, [setData])})
-
-  const onEditHandler = (store: storeResponse) => {
-    alert("{pendiente} Editar expendio: " + store.establishment.name)
+  const openCreate = () => {
+    setEditingStore(null)
+    setIsModalOpen(true)
   }
-  const onDeleteHandler = (store: storeResponse) => {
-    alert("{pendiente} Eliminar expendio: " + store.establishment.name)
+  const openEdit = (store: storeResponse) => {
+    setEditingStore(store)
+    setIsModalOpen(true)
   }
+  const openDelete = (store: storeResponse) => {
+    setDeletingStore(store)
+    setIsDialogOpen(true)
+  }
+  
+  const btnAdd = <Button onClick={openCreate}>Agregar Planta</Button>
 
   return (
     <>
-      <StoreForm />
       <StateGate
         data={data}
         error={error}
         loading={isLoading}
-        emptyProps={{ title: "Expendios" }}
+        emptyProps={{ title: "Expendios", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
+        {btnAdd}
         <Table
           headers={["Nombre", "Municipio", "Colonia", "Calle", "Número", "Acciones"]}
           data={data!}
@@ -73,28 +69,43 @@ export default function Stores() {
             x.establishment.street,
             x.establishment.number,
             <>
-              <Button onClick={() => onEditHandler(x)}><Pencil /></Button>
-              <Button onClick={() => onDeleteHandler(x)}><Trash /></Button>
+              <Button onClick={() => openEdit(x)}><Pencil /></Button>
+              <Button onClick={() => openDelete(x)}><Trash /></Button>
             </>
           ]}
         />
       </StateGate>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={(editingStore ? "Editar" : "Agregar") + " expendio"}
+      >
+        <StoreForm
+          store={editingStore}
+          onDone={() => {
+            setEditingStore(null)
+            setIsModalOpen(false)
+          }}
+        />
+      </Modal>
+      <DeleteDialog
+        isOpen={isDialogOpen}
+        setIsOpen={setIsDialogOpen}
+        store={deletingStore}
+        setStore={setDeletingStore}
+      />
     </>
   )
 }
 
-function StoreForm() {
-  const { data, error, isLoading, request } = useApi<storeResponse>()
+type StoreFormProps = {
+  store: storeResponse | null
+  onDone?: () => void
+}
+function StoreForm({ store, onDone }: StoreFormProps) {
+  const { isLoading, request, setData } = useApi<storeResponse>()
 
-  useEffect(() => {
-    if (data) {
-      alert("Expendio creado con exito!")
-    }
-    if (error) {
-      console.error(error)
-      alert("Error al crear el expendio")
-    }
-  }, [data, error])
+  useEffect(() => { if (store) setData(store) }, [store, setData])
 
   const onSubmitHandler = (data: establishmentRequest) => {
     if (Object.values(data).some(v => !v)) {
@@ -102,19 +113,128 @@ function StoreForm() {
       return
     }
 
-    request(storeService.new({ establishment: data }))
+    (store
+      ? request(storeService.upd(store.id, { establishment: data }))
+      : request(storeService.new({ establishment: data }))
+    
+    ).then((response) => {
+      if (!response) return
+      alert("Expendio creado con exito!")
+      onDone?.()
+
+    }).catch((error) => {
+      console.error(error)
+      alert("Error al crear el expendio")
+    })
   }
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField name="municipality" placeholder="Municipio" />
-      <TextField name="name" placeholder="Nombre" />
-      <TextField name="neighborhood" placeholder="Colonia" />
-      <TextField name="street" placeholder="Calle" />
-      <TextField name="number" placeholder="Número" />
+      <TextField
+        name="municipality"
+        placeholder="Municipio"
+        defaultValue={store?.establishment.municipality}  
+      />
+      <TextField
+        name="name"
+        placeholder="Nombre"
+        defaultValue={store?.establishment.name}  
+      />
+      <TextField
+        name="neighborhood"
+        placeholder="Colonia"
+        defaultValue={store?.establishment.neighborhood}  
+      />
+      <TextField
+        name="street"
+        placeholder="Calle"
+        defaultValue={store?.establishment.street}  
+      />
+      <TextField
+        name="number"
+        placeholder="Número"
+        defaultValue={store?.establishment.number}  
+      />
       <Button type="submit" disabled={isLoading}>
         Crear nuevo expendio
       </Button>
     </Form>
   )
+}
+
+type DeleteDialogProps = {
+  isOpen: boolean
+  setIsOpen: (open: boolean) => void
+  store: storeResponse | null
+  setStore: (store: storeResponse | null) => void
+}
+function DeleteDialog({
+  isOpen,
+  setIsOpen,
+  store,
+  setStore
+}: DeleteDialogProps) {
+  const { isLoading, request } = useApi()
+
+  /* useEffect(() => {
+    if (submitted && data != null) {
+      alert("Expendio eliminado con exito!")
+      setStore(null)
+      setIsOpen(false)
+      setSubmitted(false)
+    }
+    if (error) {
+      console.error(error)
+      alert("Error al eliminar el expendio")
+      setSubmitted(false)
+    }
+  }, [data, error, setStore, setIsOpen, submitted]) */
+
+  const requestDelete = () => {
+    if (!store) return
+    request(storeService.del(store.id))
+      .then(() => {
+        alert("Expendio eliminado con exito!")
+        setStore(null)
+        setIsOpen(false)
+      })
+      .catch((error) => {
+        console.error(error)
+        alert("Error al eliminar el expendio")
+      })
+  }
+
+  return (
+    <Dialog
+      title="Eliminar expendio"
+      isOpen={isOpen}
+      onClose={() => setIsOpen(false)}
+      loading={isLoading}
+      blockMissClick
+      onConfirm={requestDelete}
+    >
+      ¿Estás seguro que quieres eliminar el expendio {store?.establishment.name}?
+    </Dialog>
+  )
+}
+
+const establishmentEvents = (e: eventData, setData: Dispatch<SetStateAction<storeResponse[] | null>>) => {
+  const data = e.data as establishmentResponse
+  switch (e.action) {
+    case "updated":
+      return setData((prev) => {
+        if (!prev) return prev
+        return prev.map(f => (
+          f.establishment.id == data.id
+            ? { ...f, establishment: data }
+            : f
+        ))
+      })
+
+    case "deleted":
+      return setData((prev) => {
+        if (!prev) return prev
+        return prev.filter(f => f.establishment.id != data.id)
+      })
+  }
 }

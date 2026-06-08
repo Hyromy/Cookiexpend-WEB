@@ -4,7 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cookiexpend-web</title>
+    <title>Cookiexpend</title>
+    <script>
+      (function () {
+        document.documentElement.classList.add("no-transitions")
+
+        const key = "theme"
+        const storedTheme = localStorage.getItem(key) || "light"
+
+        document.documentElement.classList.remove("light", "dark")
+        document.documentElement.classList.add(storedTheme || "light")
+
+        window.addEventListener("load", () => {
+          document.documentElement.classList.remove("no-transitions")
+        })
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
