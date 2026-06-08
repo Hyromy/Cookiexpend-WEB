@@ -88,10 +88,23 @@ export type deliveryRequest = {
   package: packageRequest[]
 }
 
+export type statusName =
+  "pending" |
+  "in_progress" |
+  "completed" |
+  "cancelled" |
+  "stopped"
+
+export type statusResponse = itemResponse & eventResponse & {
+  name: statusName
+  description: string
+}
+
 export type deliveryResponse = itemResponse & eventResponse & {
   store: storeResponse
   factory: factoryResponse
   package: packageResponse[]
+  status: statusResponse
 }
 
 export type inventoryRequest = {

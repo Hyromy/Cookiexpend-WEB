@@ -26,7 +26,7 @@ export default function Login() {
 
   useEffect(() => {
     if (data && data.success) {
-      navigate(PATHS.me)
+      navigate(PATHS.panel)
     } else if (data && !data.success) {
       alert("Login failed: " + (data.message))
     }

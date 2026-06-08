@@ -215,7 +215,7 @@ describe("cookiexpend.ts", () => {
     it("updates product", async () => {
       const payload = { name: "Cookie", price: "12" }
       mockClient.patch.mockResolvedValueOnce({ data: {} })
-      await productService.update(7, payload)
+      await productService.upd(7, payload)
       expect(mockClient.patch).toHaveBeenCalledWith("api/products/7/", payload, expect.any(Object))
     })
 

@@ -5,7 +5,6 @@ import { PATHS } from "./paths"
 import Login from "../pages/public/Login"
 import Recover from "../pages/public/Recover"
 import NotFound from "../pages/public/NotFound"
-import Me from "../pages/public/Me"
 import Main from "../layouts/Main"
 import { MODULE_ROUTES } from "./modules"
 
@@ -21,10 +20,6 @@ export const routes = [
   {
     path: "*",
     element: <NotFound />,
-  },
-  {
-    path: PATHS.me,
-    element: <Me />,
   },
   {
     path: PATHS.panel,
