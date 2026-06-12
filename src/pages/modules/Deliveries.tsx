@@ -130,15 +130,28 @@ export default function Deliveries() {
       >
         {btnAdd}
         <Table
-          headers={["ID", "Planta", "Expendio", "Estado", "Productos", "Acciones"]}
           data={data!}
-          row={x => [
-            x.id,
-            x.factory.establishment.name,
-            x.store.establishment.name,
-            x.status.name,
-            x.package.map(p => `${p.product.name} (x${p.quantity})`).join(", "),
-            renderActionButtons(x)
+          exportToExcel
+          filename="Repartos"
+          columns={[
+            { accessorKey: "id", header: "ID" },
+            { accessorKey: "factory.establishment.name", header: "Planta" },
+            { accessorKey: "store.establishment.name", header: "Expendio" },
+            { accessorKey: "status.name", header: "Estado" },
+            {
+              id: "products",
+              header: "Productos",
+              cell: ({ row }) => (
+                row.original.package
+                  .map(p => `${p.product.name} (x${p.quantity})`)
+                  .join(", ")
+              )
+            },
+            {
+              id: "actions",
+              header: "Acciones",
+              cell: ({ row }) => renderActionButtons(row.original)
+            }
           ]}
         />
       </StateGate>

@@ -53,15 +53,27 @@ export default function Products() {
       >
         {btnAdd}
         <Table
-          headers={["Nombre", "Precio", "Acciones"]}
           data={data!}
-          row={x => [
-            x.name,
-            x.price,
-            <>
-              <Button onClick={() => openEdit(x)}><Pencil /></Button>
-              <Button onClick={() => openDelete(x)}><Trash /></Button>
-            </>
+          exportToExcel
+          filename="Productos"
+          columns={[
+            { accessorKey: "id", header: "ID" },
+            { accessorKey: "name", header: "Nombre" },
+            {
+              accessorKey: "price",
+              header: "Precio",
+              cell: ({ getValue }) => `$${getValue()}`
+            },
+            {
+              id: "actions",
+              header: "Acciones",
+              cell: ({ row }) => (
+                <>
+                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
+                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
+                </> 
+              )
+            }
           ]}
         />
       </StateGate>

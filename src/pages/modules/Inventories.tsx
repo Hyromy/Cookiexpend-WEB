@@ -28,11 +28,20 @@ export default function Inventories() {
       errorProps={{ onRetry: requestData }}
     >
       <Table
-        headers={["Expendio", "Productos"]}
         data={parseData(data!)}
-        row={x => [
-          x.store.establishment.name,
-          x.products.map(p => `${p.product.name} (${p.quantity})`).join(", ")
+        exportToExcel
+        filename="Inventarios"
+        columns={[
+          { accessorKey: "store.establishment.name", header: "Expendio" },
+          {
+            accessorKey: "products",
+            header: "Productos",
+            cell: ({ getValue }) => (
+              (getValue() as parsedData["products"])
+                .map(p => `${p.product.name} (x${p.quantity})`)
+                .join(", ")
+            )
+          }
         ]}
       />
     </StateGate>

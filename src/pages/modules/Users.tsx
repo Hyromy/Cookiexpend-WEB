@@ -30,18 +30,25 @@ export default function Users() {
       errorProps={{ onRetry: requestData }}
     >
       <Table
-        headers={["ID", "Usuario", "Correo", "Nombre", "Apellido", "Acciones"]}
         data={data!}
-        row={x => [
-          x.id,
-          x.username,
-          x.email,
-          x.first_name,
-          x.last_name,
-          <>
-            <Button onClick={() => onEditHandler(x)}><Pencil /></Button>
-            <Button onClick={() => onDeleteHandler(x)}><Trash /></Button>
-          </>
+        exportToExcel
+        filename="Usuarios"
+        columns={[
+          { accessorKey: "id", header: "ID" },
+          { accessorKey: "username", header: "Usuario" },
+          { accessorKey: "email", header: "Correo" },
+          { accessorKey: "first_name", header: "Nombre" },
+          { accessorKey: "last_name", header: "Apellido" },
+          {
+            id: "actions",
+            header: "Acciones",
+            cell: ({ row }) => (
+              <>
+                <Button onClick={() => onEditHandler(row.original)}><Pencil /></Button>
+                <Button onClick={() => onDeleteHandler(row.original)}><Trash /></Button>
+              </>
+            )
+          }
         ]}
       />
     </StateGate>

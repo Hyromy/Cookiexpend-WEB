@@ -40,14 +40,27 @@ export default function Sales() {
       >
         {btnSale}
         <Table
-          headers={["ID", "Expendio", "Detalles", "Fecha", "Total"]}
           data={data!}
-          row={x => [
-            x.id,
-            x.store.establishment.name,
-            x.details.map(d => `${d.product.name} $${d.price} x${d.quantity}`).join(", "),
-            x.date,
-            x.total
+          exportToExcel
+          filename="Ventas"
+          columns={[
+            { accessorKey: "id", header: "ID" },
+            { accessorKey: "store.establishment.name", header: "Expendio" },
+            { 
+              accessorKey: "details",
+              header: "Detalles",
+              cell: ({ getValue }) => (
+                (getValue() as saleResponse["details"])
+                  .map(d => `${d.product.name} $${d.price} x${d.quantity}`)
+                  .join(", ")
+              )
+            },
+            { accessorKey: "date", header: "Fecha" },
+            {
+              accessorKey: "total",
+              header: "Total",
+              cell: ({ getValue }) => `$${getValue()}`
+            }
           ]}
         />
       </StateGate>

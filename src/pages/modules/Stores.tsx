@@ -60,18 +60,25 @@ export default function Stores() {
       >
         {btnAdd}
         <Table
-          headers={["Nombre", "Municipio", "Colonia", "Calle", "Número", "Acciones"]}
           data={data!}
-          row={x => [
-            x.establishment.name,
-            x.establishment.municipality,
-            x.establishment.neighborhood,
-            x.establishment.street,
-            x.establishment.number,
-            <>
-              <Button onClick={() => openEdit(x)}><Pencil /></Button>
-              <Button onClick={() => openDelete(x)}><Trash /></Button>
-            </>
+          exportToExcel
+          filename="Expendios"
+          columns={[
+            { accessorKey: "establishment.name", header: "Nombre" },
+            { accessorKey: "establishment.municipality", header: "Municipio" },
+            { accessorKey: "establishment.neighborhood", header: "Colonia" },
+            { accessorKey: "establishment.street", header: "Calle" },
+            { accessorKey: "establishment.number", header: "Número" },
+            { 
+              id: "actions",
+              header: "Acciones",
+              cell: ({ row }) => (
+                <>
+                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
+                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
+                </>
+              )
+            }
           ]}
         />
       </StateGate>
