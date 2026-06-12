@@ -1,13 +1,14 @@
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, type Dispatch, type SetStateAction } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { inventoryService } from "../../services/cookiexpend"
-import type { inventoryResponse, productResponse, storeResponse } from "../../types/api"
+import type { inventoryResponse, productResponse, saleResponse, storeResponse } from "../../types/api"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { Table } from "../../components/Table"
-import type { eventModel } from "../../types/events"
+import type { eventData, eventModel } from "../../types/events"
 
 const INVENTORY_EVENTS = ["inventory"] as eventModel[]
+const SELL_EVENTS = ["sell"] as eventModel[]
 
 export default function Inventories() {
   const { data, error, isLoading, request, setData } = useApi<inventoryResponse[]>()
@@ -17,6 +18,11 @@ export default function Inventories() {
   useEvent({
     from: INVENTORY_EVENTS,
     cb: useEventOnCUD<inventoryResponse>(setData)
+  })
+  useEvent({
+    from: SELL_EVENTS,
+    on: ["created"],
+    cb: useCallback((e) => {sellEvents({ e, setData })}, [setData])
   })
 
   return (
@@ -79,4 +85,26 @@ const parseData = (rawData: inventoryResponse[]): parsedData[] => {
   })
 
   return data
+}
+
+type UpdaterEventsProps<T> = {
+  e: eventData
+  setData: Dispatch<SetStateAction<T | null>>
+}
+const sellEvents = ({ e, setData }: UpdaterEventsProps<inventoryResponse[]>) => {
+  const data = e.data as saleResponse
+  setData(prev => {
+    if (!prev) return prev
+    return prev.map(i => {
+      if (i.store.id != data.store.id) return i
+      const found = data.details.find(d => d.product.id == i.product.id)
+      if (found) {
+        return {
+          ...i,
+          quantity: i.quantity - found.quantity
+        }
+      }
+      return i
+    })
+  })
 }
