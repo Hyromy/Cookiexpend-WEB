@@ -66,6 +66,7 @@ export type storeRequest = {
 }
 
 export type productRequest = {
+  sku: string
   name: string
   price: string
 }

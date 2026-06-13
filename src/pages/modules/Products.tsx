@@ -57,7 +57,7 @@ export default function Products() {
           exportToExcel
           filename="Productos"
           columns={[
-            { accessorKey: "id", header: "ID" },
+            { accessorKey: "sku", header: "SKU" },
             { accessorKey: "name", header: "Nombre" },
             {
               accessorKey: "price",
@@ -136,6 +136,11 @@ function ProductForm({ product, onDone }: ProductFormProps) {
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
+      <TextField
+        name="sku"
+        placeholder="SKU"
+        defaultValue={product?.sku}  
+      />
       <TextField
         name="name"
         placeholder="nombre"
