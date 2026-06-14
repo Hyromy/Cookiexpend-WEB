@@ -1,7 +1,12 @@
-import { Button, ThemeButton } from "../components/Button";
-import { User2, Menu } from "lucide-react"
-import useSidebar from "../hooks/useSidebar";
-import useAuth from "../hooks/useAuth";
+import { Button, ThemeButton } from "../components/Button"
+import { User2, Menu, LogOut } from "lucide-react"
+import useSidebar from "../hooks/useSidebar"
+import useAuth from "../hooks/useAuth"
+import Dropdown from "../components/Dropdown"
+import useApi from "../hooks/useApi"
+import { authService } from "../services/cookiexpend"
+import { useNavigate } from "react-router-dom"
+import { PATHS } from "../routes/paths"
 
 export default function Header() {
   const { hasSidebar, setActiveSidebar, activeSidebar } = useSidebar()
@@ -31,11 +36,36 @@ export default function Header() {
 }
 
 function Profile() {
-  const { user } = useAuth()
+  const { user, refresh } = useAuth()
+  const { request } = useApi()
+  const navigate = useNavigate()
+  
+  const logoutHandler = () => {
+    request(authService.logout())
+      .then(() => {
+        navigate(PATHS.login)
+        refresh()
+      })
+      .catch(err => {
+        alert("Error al cerrar sesión")
+        console.error(err)
+      })
+  }
+
   return (
-    <Button className="flex flex-row gap-2">
+    <Dropdown
+      options={[
+        <Button
+          className="w-full flex flex-row gap-2"
+          onClick={logoutHandler}
+        >
+          <LogOut />
+          Cerrar sesión
+        </Button>
+      ]}
+    >
       <User2 />
       {user?.username}
-    </Button>
+    </Dropdown>
   )
 }
