@@ -6,21 +6,15 @@ import Aside from './Aside'
 import useSidebar from '../hooks/useSidebar'
 import { useEffect } from 'react'
 import { OffCanvas } from '../components/OffCanvas'
-import useApi from '../hooks/useApi'
-import { authService } from '../services/cookiexpend'
+
 
 export default function Main() {
   const { setHasSidebar, activeSidebar, setActiveSidebar } = useSidebar()
-  const { request } = useApi()
 
   useEffect(() => {
     setHasSidebar(true)
     return () => setHasSidebar(false)
   }, [setHasSidebar])
-
-  useEffect(() => {
-    request(authService.me())
-  }, [request])
 
   return (
     <div className="flex flex-col min-h-screen">

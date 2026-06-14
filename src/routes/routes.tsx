@@ -7,6 +7,7 @@ import Recover from "../pages/public/Recover"
 import NotFound from "../pages/public/NotFound"
 import Main from "../layouts/Main"
 import { MODULE_ROUTES } from "./modules"
+import ProtectedRoute from "./ProtectedRoute"
 
 export const routes = [
   {
@@ -23,7 +24,11 @@ export const routes = [
   },
   {
     path: PATHS.panel,
-    element: <Main />,
+    element: (
+      <ProtectedRoute>
+        <Main />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,
@@ -31,7 +36,11 @@ export const routes = [
       },
       ...MODULE_ROUTES.map((module) => ({
         path: module.path.replace("/", ""),
-        element: module.element,
+        element: (
+          <ProtectedRoute allowedRoles={module.allowRoles}>
+            {module.element}
+          </ProtectedRoute>
+        ),
       })),
     ],
   },

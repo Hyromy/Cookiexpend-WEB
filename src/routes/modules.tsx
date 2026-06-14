@@ -24,42 +24,49 @@ export const MODULE_ROUTES: AppModuleRoute[] = [
     path: PATHS.factories,
     element: <Factories />,
     label: "Plantas",
-    icon: <FactoryIcon />
+    icon: <FactoryIcon />,
+    allowRoles: ["Factory manager"],
   },
   {
     path: PATHS.stores,
     element: <Stores />,
     label: "Expendios",
-    icon: <Store />
+    icon: <Store />,
+    allowRoles: ["Factory manager"],
   },
   {
     path: PATHS.products,
     element: <Products />,
     label: "Productos",
     icon: <Package />,
+    allowRoles: ["Factory manager"],
   },
   {
     path: PATHS.deliveries,
     element: <Deliveries />,
     label: "Repartos",
     icon: <Truck />,
+    allowRoles: ["Factory manager"],
   },
   {
     path: PATHS.inventories,
     element: <Inventories />,
     label: "Inventarios",
     icon: <Blocks />,
+    allowRoles: ["Factory manager", "Store manager"],
   },
   {
     path: PATHS.sales,
     element: <Sales />,
     label: "Ventas",
-    icon: <ShoppingCart />
+    icon: <ShoppingCart />,
+    allowRoles: ["Factory manager", "Store manager"],
   },
   {
     path: PATHS.users,
     element: <Users />,
     label: "Usuarios",
-    icon: <Users2 />
+    icon: <Users2 />,
+    allowRoles: ["Factory manager"],
   },
 ]

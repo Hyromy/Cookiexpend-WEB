@@ -9,7 +9,8 @@ export type sessionResponse = {
   wasAuthenticated?: boolean
 }
 
-// for debugging
+export type userRole = "Factory manager" | "Store manager"
+
 export type userInfoResponse = {
   id: number
   last_login: string
@@ -21,6 +22,7 @@ export type userInfoResponse = {
   is_active: boolean
   date_joined: string
   first_name: string
+  role: userRole
 }
 
 export type eventResponse = {

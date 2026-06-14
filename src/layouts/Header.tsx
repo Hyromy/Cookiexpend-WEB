@@ -1,6 +1,7 @@
 import { Button, ThemeButton } from "../components/Button";
 import { User2, Menu } from "lucide-react"
 import useSidebar from "../hooks/useSidebar";
+import useAuth from "../hooks/useAuth";
 
 export default function Header() {
   const { hasSidebar, setActiveSidebar, activeSidebar } = useSidebar()
@@ -30,10 +31,11 @@ export default function Header() {
 }
 
 function Profile() {
+  const { user } = useAuth()
   return (
     <Button className="flex flex-row gap-2">
       <User2 />
-      {"{username}"}
+      {user?.username}
     </Button>
   )
 }

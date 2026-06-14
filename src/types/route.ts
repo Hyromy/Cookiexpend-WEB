@@ -1,4 +1,5 @@
 import { type ReactNode } from "react"
+import type { userRole } from "./api"
 
 export type AppRoute = {
   path?: string
@@ -12,4 +13,5 @@ export type AppModuleRoute = {
   element: ReactNode
   label: string
   icon: ReactNode
+  allowRoles: userRole[]
 }

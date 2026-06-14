@@ -54,9 +54,10 @@ export function Table<T>({
   filename = "table-data"
 }: TableProps<T>) {
   const paginationSizeOptions = [10, 25, 50, 100]
-
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState("")
+
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
