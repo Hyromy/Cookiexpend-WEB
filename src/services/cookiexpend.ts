@@ -23,6 +23,14 @@ const args = (data: Record<string, string | number>): string => {
     : ""
 }
 
+const buildFormData = (obj: Record<string, unknown>): FormData => {
+  const fd = new FormData()
+  for (const key in obj) {
+    fd.append(key, obj[key] as string | Blob)
+  }
+  return fd
+}
+
 class HealthService {
   check(): Promise<{ healthy: true }> {
     return api.get("api/health/")
@@ -93,11 +101,19 @@ class ProductService {
   }
 
   new(data: apiType.productRequest): Promise<apiType.productResponse> {
-    return api.post(this.endpoint, data)
+    return api.post(
+      this.endpoint,
+      buildFormData(data),
+      { headers: { "Content-Type": undefined } }
+    )
   }
 
   upd(id: string | number, data: apiType.productRequest): Promise<apiType.productResponse> {
-    return api.patch(this.endpoint + param(id), data)
+    return api.patch(
+      this.endpoint + param(id),
+      buildFormData(data),
+      { headers: { "Content-Type": undefined } }
+    )
   }
 
   del(id: string | number): Promise<void> {

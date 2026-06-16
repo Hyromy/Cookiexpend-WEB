@@ -71,9 +71,12 @@ export type productRequest = {
   sku: string
   name: string
   price: string
+  img?: File
 }
 
-export type productResponse = productRequest & itemResponse & eventResponse
+export type productResponse = Omit<productRequest, "img"> & itemResponse & eventResponse & {
+  img: string | null
+}
 
 export type packageRequest = {
   product: number | string

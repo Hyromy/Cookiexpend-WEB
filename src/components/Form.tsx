@@ -86,6 +86,25 @@ type SelectFieldProps = {
   selected?: string
 }
 
+/**
+ * A reusable select component for forms, allowing selection from predefined options.
+ * 
+ * @param name The name of the select field, used as the key in the form data object
+ * @param options An array of options to display in the dropdown, each with a value and label
+ * @param placeholder An optional placeholder option that appears when no selection is made
+ * @param selected The value of the currently selected option (optional)
+ * 
+ * @example
+ * const options = [
+ *   { value: "admin", label: "Admin role" },
+ *   { value: "user", label: "User role" },
+ * ]
+ * <SelectField
+ *   name="role"
+ *   options={options}
+ *   placeholder="Select a role"
+ * /> 
+ */
 export function SelectField({
   name,
   options,
@@ -101,5 +120,35 @@ export function SelectField({
         </option>
       ))}
     </select>
+  )
+}
+
+type FileFieldProps = {
+  name: string
+  onChange?: (file: File | null) => void
+}
+
+/**
+ * A reusable file input component for forms.
+ * 
+ * @param name The name of the file input field, used as the key in the form data object
+ * @param onChange A callback function that receives the selected file or null if no file is selected
+ * 
+ * @example
+ * <FileField
+ *   name="profilePicture"
+ *   onChange={(file) => console.log(file)}
+ * />
+ */
+export function FileField({
+  name,
+  onChange,
+}: FileFieldProps) {
+  return (
+    <input
+      name={name}
+      type="file"
+      onChange={e => onChange?.(e.target.files?.[0] || null) }
+    />
   )
 }
