@@ -6,23 +6,23 @@ import {
   useEffect,
 } from "react"
 import { AuthContext } from "./AuthContext"
-import type { userInfoResponse } from "../../types/api"
+import type { meResponse } from "../../types/api"
 import useApi from "../../hooks/useApi"
 import { authService } from "../../services/cookiexpend"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<userInfoResponse | null>(null)
+  const [user, setUser] = useState<meResponse | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const { request } = useApi<userInfoResponse | null>()
+  const { request } = useApi<meResponse | null>()
 
   const refresh = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const data = (await request(authService.me())) as userInfoResponse
+      const data = (await request(authService.me())) as meResponse
       if (data.role != null) {
         setIsAuthenticated(true)
         setUser(data)

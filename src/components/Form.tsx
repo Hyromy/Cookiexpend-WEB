@@ -83,7 +83,8 @@ type SelectFieldProps = {
   name: string
   options: { value: string, label: string }[]
   placeholder?: string
-  selected?: string
+  selected?: string,
+  onChange?: (value: string) => void
 }
 
 /**
@@ -109,10 +110,15 @@ export function SelectField({
   name,
   options,
   placeholder,
-  selected
+  selected,
+  onChange,
 }: SelectFieldProps) {
   return (
-    <select name={name} defaultValue={selected}>
+    <select
+      name={name}
+      defaultValue={selected}
+      onChange={e => onChange?.(e.target.value)}
+    >
       {placeholder && <option value="">{placeholder}</option>}
       {options.map((option) => (
         <option key={option.value} value={option.value}>

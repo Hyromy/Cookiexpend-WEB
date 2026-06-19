@@ -9,20 +9,50 @@ export type sessionResponse = {
   wasAuthenticated?: boolean
 }
 
-export type userRole = "Factory manager" | "Store manager"
+export type userRolePermission = "Factory manager" | "Store manager"
+export type userRoleName = "factory" | "store"
 
-export type userInfoResponse = {
+export type meRequest = {
+  first_name: string
+  last_name: string
+  email: string
+  password?: string
+}
+
+export type meResponse = {
+  date_joined: string
+  email: string
+  establishment: { id: number; name: string } | null
+  first_name: string
   id: number
-  last_login: string
+  is_active: boolean
+  is_staff: boolean
   is_superuser: boolean
+  last_login: string
+  last_name: string
+  role: userRolePermission
+  username: string
+}
+
+export type userInfoResponse = itemResponse & {
   username: string
   last_name: string
   email: string
-  is_staff: boolean
-  is_active: boolean
-  date_joined: string
   first_name: string
-  role: userRole
+}
+
+export type profileResponse = eventResponse & itemResponse & {
+  factory: factoryResponse | null
+  role: userRoleName
+  store: storeResponse | null
+  user: userInfoResponse
+}
+
+export type profileRequest = {
+  username: string
+  email: string
+  role: userRoleName
+  establishment: string | number
 }
 
 export type eventResponse = {
@@ -41,6 +71,7 @@ export type establishmentResponse = itemResponse & eventResponse & {
   neighborhood: string
   street: string
   number: string
+  type: userRoleName | null
 }
 
 export type establishmentRequest = {

@@ -24,6 +24,7 @@ type TableProps<T> = {
   columns: ColumnDef<T>[]
   exportToExcel?: boolean
   filename?: string
+  excludeFromView?: (row: T) => boolean
 }
 
 /**
@@ -33,6 +34,7 @@ type TableProps<T> = {
  * @param columns - The column definitions for the table to display.
  * @param exportToExcel - Whether to show the export to Excel button.
  * @param filename - The filename to use when exporting to Excel.
+ * @param excludeFromView - A function that receives a row and returns true if it should be excluded from the table view.
  * 
  * @example
  * const data = [
@@ -51,7 +53,8 @@ export function Table<T>({
   data,
   columns,
   exportToExcel = false,
-  filename = "table-data"
+  filename = "table-data",
+  excludeFromView
 }: TableProps<T>) {
   const paginationSizeOptions = [10, 25, 50, 100]
   const [sorting, setSorting] = useState<SortingState>([])
@@ -188,7 +191,7 @@ export function Table<T>({
             ))}
           </thead>
           <tbody className="divide-y">
-            {table.getRowModel().rows.map(row => (
+            {table.getRowModel().rows.map(row => !excludeFromView?.(row.original) && (
               <tr key={row.id}>
                 {row.getVisibleCells().map(cell => (
                   <td key={cell.id}>
