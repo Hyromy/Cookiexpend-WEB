@@ -23,6 +23,14 @@ const args = (data: Record<string, string | number>): string => {
     : ""
 }
 
+const buildFormData = (obj: Record<string, unknown>): FormData => {
+  const fd = new FormData()
+  for (const key in obj) {
+    fd.append(key, obj[key] as string | Blob)
+  }
+  return fd
+}
+
 class HealthService {
   check(): Promise<{ healthy: true }> {
     return api.get("api/health/")
@@ -40,8 +48,20 @@ class AuthService {
     return api.post(this.endpoint + "logout/")
   }
 
-  me(): Promise<apiType.userInfoResponse> {
+  me(): Promise<apiType.meResponse> {
     return api.get(this.endpoint + "me/")
+  }
+
+  upd(data: apiType.meRequest): Promise<apiType.meResponse> {
+    return api.patch(this.endpoint + "update/", data)
+  }
+}
+
+class EstablishmentService {
+  readonly endpoint = "api/establishments/"
+
+  get(id: string | number = ""): Promise<apiType.establishmentResponse | apiType.establishmentResponse[]> {
+    return api.get(this.endpoint + param(id))
   }
 }
 
@@ -93,11 +113,19 @@ class ProductService {
   }
 
   new(data: apiType.productRequest): Promise<apiType.productResponse> {
-    return api.post(this.endpoint, data)
+    return api.post(
+      this.endpoint,
+      buildFormData(data),
+      { headers: { "Content-Type": undefined } }
+    )
   }
 
   upd(id: string | number, data: apiType.productRequest): Promise<apiType.productResponse> {
-    return api.patch(this.endpoint + param(id), data)
+    return api.patch(
+      this.endpoint + param(id),
+      buildFormData(data),
+      { headers: { "Content-Type": undefined } }
+    )
   }
 
   del(id: string | number): Promise<void> {
@@ -151,21 +179,34 @@ class SaleService {
   }
 }
 
-class UserService {
-  readonly endpoint = "api/users/"
+class ProfileService {
+  readonly endpoint = "api/profiles/"
 
-  get(id: string | number = ""): Promise<apiType.userInfoResponse | apiType.userInfoResponse[]> {
+  get(id: string | number = ""): Promise<unknown | unknown[]> {
     return api.get(this.endpoint + param(id))
+  }
+
+  new(data: unknown): Promise<apiType.profileResponse> {
+    return api.post(this.endpoint, data)
+  }
+
+  upd(id: string | number, data: unknown): Promise<apiType.profileResponse> {
+    return api.patch(this.endpoint + param(id), data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
   }
 }
 
 export const healthService = Object.freeze(new HealthService())
 export const authService = Object.freeze(new AuthService())
 
+export const establishmentService = Object.freeze(new EstablishmentService())
 export const factoryService = Object.freeze(new FactoryService())
 export const storeService = Object.freeze(new StoreService())
 export const productService = Object.freeze(new ProductService())
 export const deliveryService = Object.freeze(new DeliveryService())
 export const inventoryService = Object.freeze(new InventoryService())
 export const saleService = Object.freeze(new SaleService())
-export const userService = Object.freeze(new UserService())
+export const profileService = Object.freeze(new ProfileService())

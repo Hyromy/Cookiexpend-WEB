@@ -6,6 +6,7 @@ import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { PATHS } from "../../routes/paths"
 import type { sessionResponse } from "../../types/api"
+import useAuth from "../../hooks/useAuth"
 
 type LoginData = {
   email: string
@@ -23,9 +24,11 @@ const validate = (data: LoginData) => {
 export default function Login() {
   const navigate = useNavigate()
   const { data, error, isLoading, request } = useApi<sessionResponse>()
+  const { refresh } = useAuth()
 
   useEffect(() => {
     if (data && data.success) {
+      refresh()
       navigate(PATHS.panel)
     } else if (data && !data.success) {
       alert("Login failed: " + (data.message))
@@ -33,7 +36,7 @@ export default function Login() {
     if (error) {
       alert("Login failed: " + error.message)
     }
-  }, [data, error, navigate])
+  }, [data, error, navigate, refresh])
 
   const onSubmitHandler = (data: LoginData) => {
     const validationResult = validate(data)

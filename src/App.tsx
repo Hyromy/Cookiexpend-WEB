@@ -4,6 +4,7 @@ import { SidebarProvider } from "./contexts/Sidebar/SidebarProvider"
 import { AuthProvider } from "./contexts/Auth/AuthProvider"
 import { routes } from "./routes/routes"
 import type { AppRoute } from "./types/route"
+import { Suspense } from "react"
 
 const renderRoutes = (routeList: AppRoute[]) => (
   routeList.map((route, index) => {
@@ -33,9 +34,11 @@ export default function App() {
       <ThemeProvider>
         <SidebarProvider>
           <BrowserRouter>
-            <Routes>
-              {renderRoutes(routes)}
-            </Routes>
+            <Suspense>
+              <Routes>
+                {renderRoutes(routes)}
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </SidebarProvider>
       </ThemeProvider>

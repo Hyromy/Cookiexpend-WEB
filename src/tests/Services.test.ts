@@ -44,6 +44,7 @@ vi.mock("axios", () => {
 
 import axios from "axios"
 import { API_URL } from "../constants/config"
+import type { productRequest } from "../types/api"
 
 const axiosMock = axios as unknown as {
   isCancel: MockFn
@@ -206,17 +207,25 @@ describe("cookiexpend.ts", () => {
     })
 
     it("creates product", async () => {
-      const payload = { name: "Cookie", price: "10" }
+      const payload: productRequest = { name: "Cookie", price: "10", sku: "1" }
       mockClient.post.mockResolvedValueOnce({ data: {} })
       await productService.new(payload)
-      expect(mockClient.post).toHaveBeenCalledWith("api/products/", payload, expect.any(Object))
+      expect(mockClient.post).toHaveBeenCalledWith(
+        "api/products/",
+        expect.any(FormData),
+        expect.any(Object)
+      )
     })
 
     it("updates product", async () => {
-      const payload = { name: "Cookie", price: "12" }
+      const payload: productRequest = { name: "Cookie", price: "12", sku: "1" }
       mockClient.patch.mockResolvedValueOnce({ data: {} })
       await productService.upd(7, payload)
-      expect(mockClient.patch).toHaveBeenCalledWith("api/products/7/", payload, expect.any(Object))
+      expect(mockClient.patch).toHaveBeenCalledWith(
+        "api/products/7/",
+        expect.any(FormData),
+        expect.any(Object)
+      )
     })
 
     it("deletes product", async () => {

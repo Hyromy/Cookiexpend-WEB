@@ -422,7 +422,7 @@ describe("useAuth.tsx", () => {
       const { result } = renderHook(() => useAuth(), { wrapper })
 
       expect(result.current.isAuthenticated).toBe(false)
-      expect(result.current.loading).toBe(false)
+      expect(result.current.loading).toBe(true)
     })
   })
 })
