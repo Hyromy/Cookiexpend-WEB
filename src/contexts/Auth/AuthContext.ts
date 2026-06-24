@@ -1,7 +1,8 @@
 import { createContext } from "react"
+import type { meResponse } from "../../types/api"
 
 export type AuthContextType = {
-  user: unknown | null | undefined
+  user: meResponse | null
   isAuthenticated: boolean
   loading: boolean
   error: Error | null

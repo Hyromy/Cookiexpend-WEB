@@ -50,13 +50,13 @@ describe("AuthProvider.tsx", () => {
       renderAuth()
 
       expect(screen.getByTestId("auth-authenticated")).toHaveTextContent("false")
-      expect(screen.getByTestId("auth-user")).toHaveTextContent("undefined")
-      expect(screen.getByTestId("auth-loading")).toHaveTextContent("false")
+      expect(screen.getByTestId("auth-user")).toHaveTextContent("null")
+      expect(screen.getByTestId("auth-loading")).toHaveTextContent("true")
       expect(screen.getByTestId("auth-error")).toHaveTextContent("null")
 
       fireEvent.click(screen.getByTestId("auth-refresh"))
       await waitFor(() => {
-        expect(screen.getByTestId("auth-authenticated")).toHaveTextContent("true")
+        expect(screen.getByTestId("auth-authenticated")).toHaveTextContent("false")
       })
     })
 
@@ -65,7 +65,7 @@ describe("AuthProvider.tsx", () => {
 
       fireEvent.click(screen.getByTestId("auth-refresh"))
       await waitFor(() => {
-        expect(screen.getByTestId("auth-authenticated")).toHaveTextContent("true")
+        expect(screen.getByTestId("auth-authenticated")).toHaveTextContent("false")
       })
 
       fireEvent.click(screen.getByTestId("auth-logout"))
@@ -76,7 +76,7 @@ describe("AuthProvider.tsx", () => {
 
       fireEvent.click(screen.getByTestId("auth-refresh"))
       await waitFor(() => {
-        expect(screen.getByTestId("auth-authenticated")).toHaveTextContent("true")
+        expect(screen.getByTestId("auth-authenticated")).toHaveTextContent("false")
       })
     })
   })

@@ -2,6 +2,17 @@ import { X } from "lucide-react"
 import { useEffect, type ReactNode} from "react"
 import { createPortal } from "react-dom"
 import { Button } from "./Button"
+import clsx from "clsx"
+
+type modalSizes = "sm" | "md" | "lg" | "xl" | "xxl"
+
+const SIZES: Record<modalSizes, string> = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+  xxl: "max-w-7xl",
+}
 
 type ModalProps = {
   children: ReactNode
@@ -9,6 +20,7 @@ type ModalProps = {
   onClose: () => void
   title?: string
   blockMissClick?: boolean
+  size?: modalSizes
 }
 
 /**
@@ -19,6 +31,7 @@ type ModalProps = {
  * @param onClose Function to call when the modal is closed
  * @param title Optional title to display at the top of the modal
  * @param blockMissClick If true, clicking outside the modal will not close it
+ * @param size The size of the modal (default: "md")
  * 
  * @example
  * const [isOpen, setIsOpen] = useState(false)
@@ -40,7 +53,8 @@ export function Modal({
   isOpen,
   onClose,
   title,
-  blockMissClick
+  blockMissClick,
+  size = "lg",
 }: ModalProps) {
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden"
@@ -52,12 +66,15 @@ export function Modal({
   if (!isOpen) return null
 
   return createPortal (
-    <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-100 flex items-center justify-center w-full h-full p-4">
       <div
         className="fixed inset-0 bg-black/25 backdrop-blur-xs"
         onClick={() => { if (!blockMissClick) onClose() }}
       />
-      <div className="relative bg-card w-full max-w-lg rounded-xl shadow-2xl overflow-auto border border-muted">
+      <div className={clsx(
+        "relative bg-card rounded-xl shadow-2xl overflow-auto border border-muted w-full max-h-full",
+        SIZES[size],
+      )}>
         <div className="flex items-center justify-between p-4 border-b border-muted">
           {title && (
             <h3 className="text-xl font-bold text-fg">

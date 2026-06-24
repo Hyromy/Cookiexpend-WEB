@@ -2,17 +2,83 @@ import { useCallback, useEffect, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { Table } from "../../components/Table"
-import { Form, SelectField, TextField } from "../../components/Form"
+import { Form, SelectField } from "../../components/Form"
 import { Button } from "../../components/Button"
 import { productService, saleService, storeService } from "../../services/cookiexpend"
 import type { productResponse, saleRequest, saleResponse, storeResponse } from "../../types/api"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import type { eventModel } from "../../types/events"
 import { Modal } from "../../components/Modal"
+import useAuth from "../../hooks/useAuth"
+import NotFound from "../public/NotFound"
+import { Minus, Plus, Image } from "lucide-react"
 
 const SALE_EVENTS = ["sell"] as eventModel[]
 
 export default function Sales() {
+  const { user } = useAuth()
+  switch (user?.role) {
+    case "Factory manager":
+      return <SalesForFactoryManager />
+
+    case "Store manager":
+      return <SalesForStoreManager />
+
+    default:
+      console.warn("Unknown role: ", user?.role)
+      return <NotFound />
+  }
+}
+
+function SalesForFactoryManager() {
+  const { data, error, isLoading, request, setData } = useApi<saleResponse[]>()
+  const requestData = useCallback(() => request(saleService.get()), [request])
+
+  useEffect(() => { requestData() }, [requestData])
+  useEvent({
+    from: SALE_EVENTS,
+    cb: useEventOnCUD<saleResponse>(setData)
+  })
+
+  return (
+    <>
+      <StateGate
+        data={data}
+        error={error}
+        loading={isLoading}
+        emptyProps={{ title: "Ventas" }}
+        errorProps={{ onRetry: requestData }}
+      >
+        <Table
+          data={data!}
+          exportToExcel
+          filename="Ventas"
+          columns={[
+            { accessorKey: "id", header: "ID" },
+            { accessorKey: "store.establishment.name", header: "Expendio" },
+            { 
+              accessorKey: "details",
+              header: "Detalles",
+              cell: ({ getValue }) => (
+                (getValue() as saleResponse["details"])
+                  .map(d => `${d.product.name} $${d.price} x${d.quantity}`)
+                  .join(", ")
+              )
+            },
+            { accessorKey: "date", header: "Fecha" },
+            {
+              accessorKey: "total",
+              header: "Total",
+              cell: ({ getValue }) => `$${getValue()}`
+            }
+          ]}
+        />
+      </StateGate>
+    </>
+  )
+}
+
+function SalesForStoreManager() {
   const { data, error, isLoading, request, setData } = useApi<saleResponse[]>()
   const requestData = useCallback(() => request(saleService.get()), [request])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -23,11 +89,7 @@ export default function Sales() {
     cb: useEventOnCUD<saleResponse>(setData)
   })
 
-  const openSale = () => {
-    setIsModalOpen(true)
-  }
-
-  const btnSale = <Button onClick={openSale}>Registrar Nueva Venta</Button>
+  const btnSale = <Button onClick={() => { setIsModalOpen(true) }}>Registrar Nueva Venta</Button>
 
   return (
     <>
@@ -40,14 +102,27 @@ export default function Sales() {
       >
         {btnSale}
         <Table
-          headers={["ID", "Expendio", "Detalles", "Fecha", "Total"]}
           data={data!}
-          row={x => [
-            x.id,
-            x.store.establishment.name,
-            x.details.map(d => `${d.product.name} $${d.price} x${d.quantity}`).join(", "),
-            x.date,
-            x.total
+          exportToExcel
+          filename="Ventas"
+          columns={[
+            { accessorKey: "id", header: "ID" },
+            { accessorKey: "store.establishment.name", header: "Expendio" },
+            { 
+              accessorKey: "details",
+              header: "Detalles",
+              cell: ({ getValue }) => (
+                (getValue() as saleResponse["details"])
+                  .map(d => `${d.product.name} $${d.price} x${d.quantity}`)
+                  .join(", ")
+              )
+            },
+            { accessorKey: "date", header: "Fecha" },
+            {
+              accessorKey: "total",
+              header: "Total",
+              cell: ({ getValue }) => `$${getValue()}`
+            }
           ]}
         />
       </StateGate>
@@ -56,6 +131,7 @@ export default function Sales() {
         onClose={() => setIsModalOpen(false)}
         blockMissClick
         title="Registrar nueva venta"
+        size="xxl"
       >
         <SalesForm onDone={() => setIsModalOpen(false)} />
       </Modal>
@@ -111,27 +187,30 @@ function SalesForm({
   }
 
   return (
-    <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
+    <Form onSubmit={onSubmitHandler} className="flex flex-col gap-2">
       <StoreSelector />
       <ProductChooser
         products={data!}
         onQuantityChange={handleQuantityChange}
         quantities={quantities}
       />
+      <hr className="border-muted" />
       <PriceDisplay total={total} />
-      <Button
-        type="submit"
-        disabled={pushLoading}
-      >
-        Vender
-      </Button>
-      <Button
-        type="reset"
-        onClick={clearForm}
-        disabled={pushLoading}
-      >
-        Restablecer
-      </Button>
+      <div className="flex flex-row">
+        <Button
+          type="submit"
+          disabled={pushLoading}
+        >
+          Vender
+        </Button>
+        <Button
+          type="reset"
+          onClick={clearForm}
+          disabled={pushLoading}
+        >
+          Restablecer
+        </Button>
+      </div>
     </Form>
   )
 }
@@ -159,6 +238,84 @@ function StoreSelector() {
   )
 }
 
+type ProductCardProps = {
+  product: productResponse,
+  currentQuantity?: number,
+  onQuantityChange: (id: number, val: string) => void,
+  handleStepChange: (id: number, value: number, step: number) => void
+}
+function ProductCard({
+  product,
+  currentQuantity = 0,
+  onQuantityChange,
+  handleStepChange
+}: ProductCardProps) {
+  const ProductHeader = (
+    <div className="flex justify-between">
+      <h4 className="font-semibold">
+        {product.name}
+      </h4>
+      <span className="text-muted">
+        ${product.price}
+      </span>
+    </div>
+  )
+  const DecrementButton = (
+    <button
+      type="button"
+      onClick={() => handleStepChange(product.id, currentQuantity, -1)}
+      className="px-3 h-full cursor-pointer"
+      disabled={currentQuantity <= 0}
+    >
+      <Minus className="w-4 h-4" />
+    </button>
+  )
+  const QuantityInput = (
+    <input
+      type="number"
+      name={`product-${product.id}`}
+      placeholder="0"
+      min="0"
+      value={currentQuantity}
+      onChange={(e) => onQuantityChange(product.id, e.target.value)}
+      className="w-12 text-center bg-transparent border-none text-sm text-fg font-semibold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+    />
+  )
+  const IncrementButton = (
+    <button
+      type="button"
+      onClick={() => handleStepChange(product.id, currentQuantity, 1)}
+      className="px-3 h-full cursor-pointer"
+    >
+      <Plus className="w-4 h-4" />
+    </button>
+  )
+
+  return (
+    <div
+      className="w-full max-w-64 h-64 flex flex-col justify-between p-3 bg-card border border-muted rounded-xl shadow-xs"
+    >
+      {ProductHeader}
+      <div
+        className="w-full h-32flex items-center justify-center overflow-hidden cursor-pointer"
+        onClick={() => handleStepChange(product.id, currentQuantity, 1)}
+      >
+        <Image className="w-full h-full object-cover" />
+      </div>
+      <div className="flex items-center justify-between gap-2 pt-3 border-t border-muted">
+        <span className="text-xs text-muted">
+          {"{stock}"}
+        </span>
+        <div className="flex items-center border border-muted rounded-lg  overflow-hidden h-9">
+          {DecrementButton}
+          {QuantityInput}
+          {IncrementButton}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ProductChooser({
   products,
   onQuantityChange,
@@ -168,22 +325,25 @@ function ProductChooser({
   onQuantityChange: (id: number, val: string) => void,
   quantities: Record<number, number>
 }) {
+  const handleStepChange = (id: number, value: number, step: number) => {
+    const newValue = Math.max(0, value + step)
+    onQuantityChange(id, newValue.toString())
+  }
+
   return (
-    <>
-      {products?.map((product) => (
-        <div key={product.id} className="flex items-center gap-2">
-          <label className="min-w-32">{product.name}</label>
-          <span className="text-gray-500 w-20"> - ${product.price} </span>
-          <TextField
-            name={`product-${product.id}`}
-            placeholder="0"
-            type="number"
-            value={quantities[product.id] || ""}
-            onChange={(e) => onQuantityChange(product.id, e.target.value)}
+    <div className="max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="flex flex-wrap gap-2 justify-center">
+        {products?.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            currentQuantity={quantities[product.id] || 0}
+            onQuantityChange={onQuantityChange}
+            handleStepChange={handleStepChange}
           />
-        </div>
-      ))}
-    </>
+        ))}
+      </div>
+    </div>
   )
 }
 

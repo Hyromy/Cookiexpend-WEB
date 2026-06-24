@@ -4,10 +4,10 @@ import type { productRequest, productResponse } from "../../types/api"
 import { productService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
-import { Form, TextField } from "../../components/Form"
+import { FileField, Form, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
 import { Table } from "../../components/Table"
-import { Pencil, Trash } from "lucide-react"
+import { Image, Pencil, Trash } from "lucide-react"
 import type { eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 
@@ -20,6 +20,8 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState<productResponse | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [deletingProduct, setDeletingProduct] = useState<productResponse | null>(null)
+  const [isImageOpen, setIsImageOpen] = useState(false)
+  const [imageSrc, setImageSrc] = useState("")
 
   useEffect(() => { requestData() }, [requestData])
   useEvent({
@@ -53,15 +55,42 @@ export default function Products() {
       >
         {btnAdd}
         <Table
-          headers={["Nombre", "Precio", "Acciones"]}
           data={data!}
-          row={x => [
-            x.name,
-            x.price,
-            <>
-              <Button onClick={() => openEdit(x)}><Pencil /></Button>
-              <Button onClick={() => openDelete(x)}><Trash /></Button>
-            </>
+          exportToExcel
+          filename="Productos"
+          columns={[
+            { accessorKey: "sku", header: "SKU" },
+            { accessorKey: "name", header: "Nombre" },
+            {
+              accessorKey: "price",
+              header: "Precio",
+              cell: ({ getValue }) => `$${getValue()}`
+            },
+            {
+              accessorKey: "img",
+              header: "Imagen",
+              cell: ({ getValue }) => getValue() && (
+                <Button
+                  disabled={!getValue()}
+                  onClick={() => {
+                    setImageSrc(getValue() as string)
+                    setIsImageOpen(true)
+                  }}
+                >
+                  <Image />
+                </Button>
+              )
+            },
+            {
+              id: "actions",
+              header: "Acciones",
+              cell: ({ row }) => (
+                <>
+                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
+                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
+                </> 
+              )
+            }
           ]}
         />
       </StateGate>
@@ -84,6 +113,22 @@ export default function Products() {
         product={deletingProduct}
         setProduct={setDeletingProduct}
       />
+      <Modal
+        isOpen={isImageOpen}
+        onClose={() => {
+          setIsImageOpen(false)
+          setImageSrc("")
+        }}
+        title="Imagen del producto"
+      >
+        {imageSrc && (
+          <img 
+            className="w-full h-full object-cover"
+            src={imageSrc}
+            alt="Producto"
+          />
+        )}
+      </Modal>
     </>
   )
 }
@@ -98,12 +143,9 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   useEffect(() => { if (product) setData(product) }, [product, setData])
 
   const onSubmitHandler = (data: productRequest) => {
-    if (Object.values(data).some(v => !v)) {
-      alert("Por favor llena todos los campos antes de registrar")
-      return
-    }
-    if (parseFloat(data.price) <= 0) {
-      alert("Por favor, ingrese un precio válido")
+    const validation = validateSubmit(data, product ? "upd" : "new")
+    if (validation != true) {
+      alert(validation)
       return
     }
 
@@ -125,6 +167,11 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
       <TextField
+        name="sku"
+        placeholder="SKU"
+        defaultValue={product?.sku}  
+      />
+      <TextField
         name="name"
         placeholder="nombre"
         defaultValue={product?.name}  
@@ -132,7 +179,10 @@ function ProductForm({ product, onDone }: ProductFormProps) {
       <TextField
         name="price"
         placeholder="precio"
-        defaultValue={product?.price}  
+        defaultValue={product?.price}
+      />
+      <FileField
+        name="img"
       />
       <Button type="submit" disabled={isLoading}>
         Enviar
@@ -180,4 +230,33 @@ function DeleteDialog({
       ¿Estás seguro que deseas eliminar el producto "{product?.name}"?
     </Dialog>
   )
+}
+
+const validateSubmit = (data: productRequest, type: "new" | "upd"): string | true => {
+  if (type == "new") {
+    if (
+      !data.sku
+      || !data.name
+      || !data.price
+      || !data.img
+      || (data.img instanceof File && data.img.size == 0)
+    ) {
+      return "Por favor llena todos los campos antes de registrar"
+    }
+  } else if (type == "upd") {
+    if (
+      !data.sku
+      && !data.name
+      && !data.price
+      && !(data.img instanceof File && data.img.size > 0)
+    ) {
+      return "Por favor ingresa al menos un campo para actualizar"
+    }
+  }
+  
+  if (data.price && parseFloat(data.price) <= 0) {
+    return "Por favor, ingrese un precio válido"
+  }
+
+  return true
 }

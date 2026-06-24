@@ -11,7 +11,8 @@ export type eventModel =
 	"delivery" |
 	"package" |
 	"inventory" |
-	"sell"
+	"sell" |
+	"profile"
 
 export type eventData = {
 	action: eventAction
