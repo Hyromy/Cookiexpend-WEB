@@ -1,5 +1,5 @@
 import { type ReactNode } from "react"
-import type { userRole } from "./api"
+import type { userRolePermission } from "./api"
 
 export type AppRoute = {
   path?: string
@@ -13,5 +13,5 @@ export type AppModuleRoute = {
   element: ReactNode
   label: string
   icon: ReactNode
-  allowRoles: userRole[]
+  allowRoles: userRolePermission[]
 }

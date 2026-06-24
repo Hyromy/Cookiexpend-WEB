@@ -1,10 +1,10 @@
 import useAuth from "../hooks/useAuth"
 import NotFound from "../pages/public/NotFound"
-import type { userRole } from "../types/api"
+import type { userRolePermission } from "../types/api"
 import { type ReactNode } from "react"
 
 type ProtectedRouteProps = {
-  allowedRoles?: userRole[]
+  allowedRoles?: userRolePermission[]
   children: ReactNode
 }
 export default function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) {
@@ -18,7 +18,7 @@ export default function ProtectedRoute({ allowedRoles, children }: ProtectedRout
     || !user
     || (
       allowedRoles
-      && !allowedRoles.includes(user?.role!)
+      && !allowedRoles.includes(user.role)
     )
   ) {
     return <NotFound />

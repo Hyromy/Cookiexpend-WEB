@@ -183,7 +183,7 @@ function EstablishmentSelect({
 }: EstablishmentSelectProps) {
   const { data, request, isLoading } = useApi<establishmentResponse[]>()
 
-  useEffect(() => { request(establishmentService.get()) }, [])
+  useEffect(() => { request(establishmentService.get()) }, [request])
 
   return !isLoading && (
     <SelectField
