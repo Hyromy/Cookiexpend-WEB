@@ -3,7 +3,7 @@ import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { factoryService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
-import type { establishmentRequest, establishmentResponse, factoryResponse } from "../../types/api"
+import type { ApiRequestError, establishmentRequest, establishmentResponse, factoryResponse } from "../../types/api"
 import { Button } from "../../components/Button"
 import { Form, TextField } from "../../components/Form"
 import { Table } from "../../components/Table"
@@ -14,6 +14,13 @@ import { Dialog, Modal } from "../../components/Modal"
 const FACTORY_EVENTS = ["factory"] as eventModel[]
 const ESTABLISHMENT_EVENTS = ["establishment"] as eventModel[]
 const ON_EDITABLE_EVENTS = ["updated", "deleted"] as eventAction[]
+
+const FACTORY_REQUIRED_ARGS = [
+  "name",
+  "municipality",
+  "neighborhood",
+  "street",
+] as (keyof establishmentRequest)[]
 
 export default function Factories() {
   const { data, error, isLoading, request, setData } = useApi<factoryResponse[]>()
@@ -115,56 +122,85 @@ function FactoryForm({ factory, onDone }: FactoryFormProps) {
   useEffect(() => { if (factory) setData(factory.establishment) }, [factory, setData])
 
   const onSubmitHandler = (data: establishmentRequest) => {
-    if (Object.values(data).some(v => !v)) {
-      alert("Por favor llena todos los campos antes de registrar")
+    clearData(data)
+    const validation = validate(data)
+    if (validation != true) {
+      alert(validation)
       return
     }
-    
+
     (factory
       ? request(factoryService.upd(factory.id, { establishment: data }))
       : request(factoryService.new({ establishment: data }))
     
-    ).then((response) => {
-      if (!response) return
-      alert("Planta creada con exito!")
+    ).then(() => {
+      alert("Planta creada con éxito!")
       onDone?.()
-    
-    }).catch((error) => {
-      console.error(error)
-      alert("Error al crear la planta")
-    })
+
+    }).catch(err => submitErrorHandler(err))
   }
+  
+  const dangerChars = /[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField
-        name="municipality"
-        placeholder="Municipio"
-        defaultValue={factory?.establishment.municipality}
-      />
-      <TextField
-        name="name"
-        placeholder="Nombre"
-        defaultValue={factory?.establishment.name}
-      />
-      <TextField
-        name="neighborhood"
-        placeholder="Colonia"
-        defaultValue={factory?.establishment.neighborhood}
-      />
-      <TextField
-        name="street"
-        placeholder="Calle"
-        defaultValue={factory?.establishment.street}
-      />
-      <TextField
-        name="number"
-        placeholder="Número"
-        defaultValue={factory?.establishment.number}
-      />
-      <Button type="submit" disabled={isLoading}>
-        Enviar
-      </Button>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="name"
+          label="Nombre"
+          defaultValue={factory?.establishment.name}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="municipality"
+          label="Municipio"
+          defaultValue={factory?.establishment.municipality}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="neighborhood"
+          label="Colonia"
+          defaultValue={factory?.establishment.neighborhood}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="street"
+          label="Calle"
+          defaultValue={factory?.establishment.street}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanRegex={/\D/}
+          name="number"
+          label="Número"
+          defaultValue={factory?.establishment.number}
+        />
+      </div>
+      <div className="flex justify-center">
+        <Button
+          className="px-6"
+          type="submit"
+          disabled={isLoading}
+        >
+          Guardar
+        </Button>
+      </div>
     </Form>
   )
 }
@@ -190,8 +226,8 @@ function DeleteDialog({
         setFactory(null)
         setIsOpen(false)
       })
-      .catch((error) => {
-        console.error(error)
+      .catch(err => {
+        console.error(err)
         alert("Error al eliminar la planta")
       })
   }
@@ -229,4 +265,34 @@ const establishmentEvents = (e: eventData, setData: Dispatch<SetStateAction<fact
         return prev.filter(f => f.establishment.id != data.id)
       })
   }
+}
+
+const clearData = (data: establishmentRequest) => {
+  FACTORY_REQUIRED_ARGS.forEach(key => {
+    if (data[key]) {
+      data[key] = data[key].trim().replace(/\s+/g, " ")
+    }
+  })
+
+  if (!data.number?.trim()) delete data.number
+}
+
+const validate = (data: establishmentRequest): string | true => {
+  if (FACTORY_REQUIRED_ARGS.some(k => !data[k])) {
+    return "Por favor, complete todos los campos obligatorios."
+  }
+
+  return true
+}
+
+const submitErrorHandler = (err: ApiRequestError) => {
+  if (
+    (err.data as Record<string, Record<string, string[]>>)
+    ?.establishment?.name?.find((i: string) => i.includes("already exists"))
+  ) {
+    alert("Ya existe una planta o expendio con ese nombre")
+    return
+  }
+
+  alert("Error al guardar la planta, por favor intente más tarde")
 }

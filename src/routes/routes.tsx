@@ -34,7 +34,7 @@ export const routes = [
     children: [
       {
         index: true,
-        element: <Navigate to={PATHS.panel + PATHS.products} replace />,
+        element: <Navigate to={PATHS.panel + PATHS.loadingPanel} replace />,
       },
       ...MODULE_ROUTES.map((module) => ({
         path: module.path.replace("/", ""),

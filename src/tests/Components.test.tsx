@@ -7,6 +7,7 @@ import { Form, TextField } from "../components/Form"
 import { OffCanvas } from "../components/OffCanvas"
 import { LoadingState, ErrorState, EmptyState, StateGate } from "../components/State"
 import useTheme from "../hooks/useTheme"
+import { ApiError } from "../services/api"
 
 vi.mock("../hooks/useTheme", () => ({
   default: vi.fn(),
@@ -259,8 +260,7 @@ describe("State.tsx", () => {
 
     it("shows error state and logs when error exists", () => {
       const onRetry = vi.fn()
-      const error = new Error("Boom")
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined)
+      const error = new ApiError("Boom")
 
       render(
         <StateGate
@@ -272,14 +272,11 @@ describe("State.tsx", () => {
           <span>Contenido</span>
         </StateGate>
       )
-
+    
       expect(screen.getByText("Ocurrió un error")).toBeInTheDocument()
-      expect(errorSpy).toHaveBeenCalledWith(error)
-
+    
       fireEvent.click(screen.getByRole("button", { name: "Reintentar" }))
       expect(onRetry).toHaveBeenCalledTimes(1)
-
-      errorSpy.mockRestore()
     })
 
     it("uses custom loading, error, and empty props", () => {

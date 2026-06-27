@@ -1,8 +1,8 @@
 import { type ChangeEvent, type Dispatch, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
-import type { deliveryRequest, deliveryResponse, establishmentResponse, factoryResponse, packageResponse, productResponse, storeResponse } from "../../types/api"
-import { deliveryService, factoryService, productService, storeService } from "../../services/cookiexpend"
+import type { ApiRequestError, deliveryRequest, deliveryResponse, establishmentResponse, factoryResponse, packageResponse, productResponse, statusName, storeResponse } from "../../types/api"
+import { deliveryService, productService, storeService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { Form, SelectField, TextField } from "../../components/Form"
 import { Button } from "../../components/Button"
@@ -10,6 +10,7 @@ import { Table } from "../../components/Table"
 import { Pencil, Trash, Check, CircleSlash } from "lucide-react"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
+import useAuth from "../../hooks/useAuth"
 
 const DELIVERY_EVENTS = ["delivery"] as eventModel[]
 const STORE_FACTORY_EVENTS = ["store", "factory"] as eventModel[]
@@ -24,6 +25,7 @@ export default function Deliveries() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [statusStep, setStatusStep] = useState<1 | -1>(1)
+  const { user } = useAuth()
 
   useEffect(() => { requestData() }, [requestData])
   useEvent({
@@ -89,21 +91,20 @@ export default function Deliveries() {
 
     switch(delivery.status.name) {
       case "pending":
-        return allButtons
+        return user?.role == "Factory manager" && allButtons
 
       case "in_progress":
-        return (
-          <>
-            <Button
+        return user?.role == "Store manager"
+        ? status
+        : (
+          <Button
             onClick={() => {
               setStatusStep(-1)
               openStatus(delivery)
             }}
-            >
-              <CircleSlash />
-            </Button>
-            {status}
-          </>
+          >
+            <CircleSlash />
+          </Button>
         )
 
       case "completed":
@@ -119,24 +120,40 @@ export default function Deliveries() {
 
   const btnAdd = <Button onClick={openCreate}>Agregar Reparto</Button>
 
+  const filteredData = useMemo(() => {
+    if (!data) return null
+
+    if (user?.role == "Factory manager") return data
+
+    return data.filter(
+      d => ([
+        "in_progress",
+        "completed"
+      ] as statusName[]).includes(d.status.name)
+    )
+  }, [data, user?.role])
+
   return (
     <>
       <StateGate
-        data={data}
+        data={filteredData}
         error={error}
         loading={isLoading}
         emptyProps={{ title: "Repartos", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {btnAdd}
+        {user?.role == "Factory manager" && btnAdd}
         <Table
-          data={data!}
+          data={filteredData!}
           exportToExcel
-          filename="Repartos"
+          filename={"Repartos" + ((user?.role == "Store manager") && ` - ${user?.establishment?.name}`)}
           columns={[
             { accessorKey: "id", header: "ID" },
             { accessorKey: "factory.establishment.name", header: "Planta" },
-            { accessorKey: "store.establishment.name", header: "Expendio" },
+            ...(user?.role == "Factory manager"
+              ? [{ accessorKey: "store.establishment.name", header: "Expendio" }]
+              : []
+            ),
             { accessorKey: "status.name", header: "Estado" },
             {
               id: "products",
@@ -202,8 +219,9 @@ function DeliveryForm({ delivery, onDone }: DeliveryFormProps) {
 
   const onSubmitHandler = (data: deliveryRequest) => {
     parseData(data)
-    if (!data.factory || !data.store || data.package.length == 0) {
-      alert("Por favor llena todos los campos y agrega al menos un producto")
+    const validation = validateSubmit(data)
+    if (validation != true) {
+      alert(validation)
       return
     }
 
@@ -211,15 +229,11 @@ function DeliveryForm({ delivery, onDone }: DeliveryFormProps) {
       ? request(deliveryService.upd(delivery.id, data))
       : request(deliveryService.new(data))
     
-    ).then((response) => {
-      if (!response) return
+    ).then(() => {
       alert("Reparto creado con exito!")
       onDone?.()
 
-    }).catch((error) => {
-      console.error(error)
-      alert("Error al crear el reparto")
-    })
+    }).catch(err => onSubmitErrorHandler(err))
   }
 
   return (
@@ -230,20 +244,22 @@ function DeliveryForm({ delivery, onDone }: DeliveryFormProps) {
         placeholder="Selecciona un expendio"
         defaultValue={delivery?.store.id.toString()}
       />
-      <ThisSelect
-        getter={() => factoryService.get()}
-        name="factory"
-        placeholder="Selecciona una planta"
-        defaultValue={delivery?.factory.id.toString()}
-      />
-      <ProductList
-        key={delivery?.id ?? "new"}
-        onChange={setPackages}
-        defaultValue={delivery?.package}
-      />
-      <Button type="submit" disabled={isLoading}>
-        Crear nuevo reparto
-      </Button>
+      <div className="grid grid-cols-2 gap-4">
+        <ProductList
+          key={delivery?.id ?? "new"}
+          onChange={setPackages}
+          defaultValue={delivery?.package}
+        />
+      </div>
+      <div className="flex justify-center">
+        <Button
+          className="px-6"
+          type="submit"
+          disabled={isLoading}
+        >
+          Crear nuevo reparto
+        </Button>
+      </div>
     </Form>
   )
 }
@@ -315,11 +331,11 @@ function ProductList({ onChange, defaultValue }: ProductListProps) {
   return !isLoading && (
     <>
       {(data ?? []).map((p) => (
-        <div key={p.id}>
-          <span>{p.name}</span>
+        <div key={p.id} className="">
           <TextField
             name={`prod-${p.id}`}
-            type="number"
+            cleanRegex={/\D/}
+            label={p.name}
             placeholder="0"
             defaultValue={defaultValue?.find(pkg => pkg.product.id == p.id)?.quantity.toString()}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -445,3 +461,23 @@ const establishmentEvents = ({ e, setData }: UpdaterEventsProps<deliveryResponse
       })
   }
 }
+
+const validateSubmit = (data: deliveryRequest): string | true => {
+  if (!data.store) return "Por favor selecciona un expendio"
+  if (!data.package || data.package.length == 0) return "Por favor agrega al menos un producto"
+
+  return true
+}
+
+const onSubmitErrorHandler = (err: ApiRequestError) => {
+  const errData: Record<string, string[]> = err.data as Record<string, string[]>
+  const thisIncludes = (str: string) => (i: string) => i.includes(str)
+
+  if (errData?.factory?.find(thisIncludes("field is required"))) {
+    alert("No se pudo determinar la planta de origen. Por favor, inténtelo más tarde.")
+    return
+  }
+
+  alert("Ocurrió un error inesperado al crear el reparto. Por favor, inténtelo más tarde.")
+}
+

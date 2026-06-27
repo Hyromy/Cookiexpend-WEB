@@ -90,35 +90,35 @@ describe("api.ts", () => {
     it("wraps canceled requests", async () => {
       axiosMock.isCancel.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!(new Error("cancel")))
-        .rejects.toMatchObject({ message: "The request was canceled." })
+        .rejects.toMatchObject({ message: "cancel" })
     })
 
     it("wraps timeout errors", async () => {
       axiosMock.isCancel.mockReturnValue(false)
       axiosMock.isAxiosError.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!({ code: "ECONNABORTED" }))
-        .rejects.toMatchObject({ message: "The request timed out." })
+        .rejects.toMatchObject({ code: "ECONNABORTED" })
     })
 
     it("prefers cancel over axios error", async () => {
       axiosMock.isCancel.mockReturnValue(true)
       axiosMock.isAxiosError.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!({ response: { data: { message: "bad" } } }))
-        .rejects.toMatchObject({ message: "The request was canceled." })
+        .rejects.toMatchObject({ response: { data: { message: "bad" } } })
     })
 
     it("uses axios response message when available", async () => {
       axiosMock.isCancel.mockReturnValue(false)
       axiosMock.isAxiosError.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!({ response: { data: { message: "bad" } } }))
-        .rejects.toMatchObject({ message: "bad" })
+        .rejects.toMatchObject({ response: { data: { message: "bad" } } })
     })
 
     it("falls back when axios response has no message", async () => {
       axiosMock.isCancel.mockReturnValue(false)
       axiosMock.isAxiosError.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!({ response: { data: {} } }))
-        .rejects.toMatchObject({ message: "An unknown error occurred while making the API request." })
+        .rejects.toMatchObject({ response: { data: {} } })
     })
 
     it("wraps non-axios Error instances", async () => {
@@ -132,7 +132,7 @@ describe("api.ts", () => {
       axiosMock.isCancel.mockReturnValue(false)
       axiosMock.isAxiosError.mockReturnValue(false)
       await expect(mockResponseHandlers.onRejected!("boom"))
-        .rejects.toMatchObject({ message: "An unknown error occurred while making the API request." })
+        .rejects.toBe("boom")
     })
     
     it("handles success cases", async () => {

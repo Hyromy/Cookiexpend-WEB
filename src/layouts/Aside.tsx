@@ -11,6 +11,7 @@ export default function Aside({closeCanvas}: {closeCanvas?: () => void}) {
   const allowedModules = MODULE_ROUTES.filter(module => {
     if (!module.allowRoles) return true
     if (!user) return false
+    if (module.path == PATHS.loadingPanel) return false
     return module.allowRoles.includes(user.role!)
   })
 

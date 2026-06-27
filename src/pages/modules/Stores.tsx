@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
-import type { establishmentRequest, establishmentResponse, storeResponse } from "../../types/api"
+import type { ApiRequestError, establishmentRequest, establishmentResponse, storeResponse } from "../../types/api"
 import { storeService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { Form, TextField } from "../../components/Form"
@@ -14,6 +14,13 @@ import { Dialog, Modal } from "../../components/Modal"
 const STORE_EVENTS = ["store"] as eventModel[]
 const ESTABLISHMENT_EVENTS = ["establishment"] as eventModel[]
 const ON_EDITABLE_EVENTS = ["updated", "deleted"] as eventAction[]
+
+const STORE_REQUIRED_ARGS = [
+  "name",
+  "municipality",
+  "neighborhood",
+  "street",
+] as (keyof establishmentRequest)[]
 
 export default function Stores() {
   const { data, error, isLoading, request, setData } = useApi<storeResponse[]>()
@@ -47,7 +54,7 @@ export default function Stores() {
     setIsDialogOpen(true)
   }
   
-  const btnAdd = <Button onClick={openCreate}>Agregar Planta</Button>
+  const btnAdd = <Button onClick={openCreate}>Agregar Expendio</Button>
 
   return (
     <>
@@ -115,8 +122,10 @@ function StoreForm({ store, onDone }: StoreFormProps) {
   useEffect(() => { if (store) setData(store) }, [store, setData])
 
   const onSubmitHandler = (data: establishmentRequest) => {
-    if (Object.values(data).some(v => !v)) {
-      alert("Por favor llena todos los campos")
+    clearData(data)
+    const validation = validate(data)
+    if (validation != true) {
+      alert(validation)
       return
     }
 
@@ -124,47 +133,74 @@ function StoreForm({ store, onDone }: StoreFormProps) {
       ? request(storeService.upd(store.id, { establishment: data }))
       : request(storeService.new({ establishment: data }))
     
-    ).then((response) => {
-      if (!response) return
+    ).then(() => {
       alert("Expendio creado con exito!")
       onDone?.()
 
-    }).catch((error) => {
-      console.error(error)
-      alert("Error al crear el expendio")
-    })
+    }).catch((error) => submitErrorHandler(error))
   }
+
+  const dangerChars = /[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField
-        name="municipality"
-        placeholder="Municipio"
-        defaultValue={store?.establishment.municipality}  
-      />
-      <TextField
-        name="name"
-        placeholder="Nombre"
-        defaultValue={store?.establishment.name}  
-      />
-      <TextField
-        name="neighborhood"
-        placeholder="Colonia"
-        defaultValue={store?.establishment.neighborhood}  
-      />
-      <TextField
-        name="street"
-        placeholder="Calle"
-        defaultValue={store?.establishment.street}  
-      />
-      <TextField
-        name="number"
-        placeholder="Número"
-        defaultValue={store?.establishment.number}  
-      />
-      <Button type="submit" disabled={isLoading}>
-        Crear nuevo expendio
-      </Button>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="name"
+          label="Nombre"
+          defaultValue={store?.establishment.name}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="municipality"
+          label="Municipio"
+          defaultValue={store?.establishment.municipality}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="neighborhood"
+          label="Colonia"
+          defaultValue={store?.establishment.neighborhood}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="street"
+          label="Calle"
+          defaultValue={store?.establishment.street}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanRegex={/\D/}
+          name="number"
+          label="Número"
+          defaultValue={store?.establishment.number}
+        />
+      </div>
+      <div className="flex justify-center">
+        <Button
+          className="px-6"
+          type="submit"
+          disabled={isLoading}
+        >
+          Guardar
+        </Button>
+      </div>
     </Form>
   )
 }
@@ -183,25 +219,10 @@ function DeleteDialog({
 }: DeleteDialogProps) {
   const { isLoading, request } = useApi()
 
-  /* useEffect(() => {
-    if (submitted && data != null) {
-      alert("Expendio eliminado con exito!")
-      setStore(null)
-      setIsOpen(false)
-      setSubmitted(false)
-    }
-    if (error) {
-      console.error(error)
-      alert("Error al eliminar el expendio")
-      setSubmitted(false)
-    }
-  }, [data, error, setStore, setIsOpen, submitted]) */
-
   const requestDelete = () => {
     if (!store) return
     request(storeService.del(store.id))
       .then(() => {
-        alert("Expendio eliminado con exito!")
         setStore(null)
         setIsOpen(false)
       })
@@ -244,4 +265,34 @@ const establishmentEvents = (e: eventData, setData: Dispatch<SetStateAction<stor
         return prev.filter(f => f.establishment.id != data.id)
       })
   }
+}
+
+const clearData = (data: establishmentRequest) => {
+  STORE_REQUIRED_ARGS.forEach(key => {
+    if (data[key]) {
+      data[key] = data[key].trim().replace(/\s+/g, " ")
+    }
+  })
+
+  if (!data.number?.trim()) delete data.number
+}
+
+const validate = (data: establishmentRequest): string | true => {
+  if (STORE_REQUIRED_ARGS.some(k => !data[k])) {
+    return "Por favor, complete todos los campos obligatorios."
+  }
+
+  return true
+}
+
+const submitErrorHandler = (err: ApiRequestError) => {
+  if (
+    (err.data as Record<string, Record<string, string[]>>)
+    ?.establishment?.name?.find((i: string) => i.includes("already exists"))
+  ) {
+    alert("Ya existe una planta o expendio con ese nombre")
+    return
+  }
+
+  alert("Error al guardar el expendio, por favor intente más tarde")
 }

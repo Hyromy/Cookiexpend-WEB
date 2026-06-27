@@ -1,4 +1,4 @@
-import { type ReactNode, type SyntheticEvent } from "react"
+import { useState, type ReactNode, type SyntheticEvent } from "react"
 
 type FormProps<T> = {
   children: ReactNode
@@ -44,18 +44,30 @@ export function Form<T>({
 type TextFieldProps = {
   name: string
   type?: string
+  label?: string
+  required?: boolean
   placeholder?: string
-  value?: string | number
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
-  className?: string
   defaultValue?: string | number
+  cleanRegex?: RegExp
+  cleanEmpty?: boolean
+  readonly?: boolean
+  disabled?: boolean
 }
 /**
  * A reusable text input component for forms, supporting different types and placeholders.
  * 
  * @param name The name of the input field, used as the key in the form data object
- * @param type The type of the input (default: "text")
- * @param placeholder The placeholder text for the input
+ * @param type The type of the input field (e.g., "text", "password", "email")
+ * @param label An optional label for the input field
+ * @param required Whether the input field is required (default: false)
+ * @param placeholder An optional placeholder text for the input field
+ * @param onChange A callback function that receives the change event when the input value changes
+ * @param defaultValue The initial value of the input field (default: "")
+ * @param cleanRegex An optional regular expression to clean the input value before updating the state
+ * @param cleanEmpty Whether to remove leading and trailing whitespace from the input value (default: false)
+ * @param readonly Whether the input field is read-only (default: false)
+ * @param disabled Whether the input field is disabled (default: false)
  * 
  * @example
  * <TextField name="email" placeholder="Email" />
@@ -63,19 +75,66 @@ type TextFieldProps = {
  */
 export function TextField({
   name,
+  label,
   type = "text",
   placeholder,
   onChange,
-  defaultValue,
-} : TextFieldProps) {
-  return (
-    <input
-      name={name}
-      type={type}
-      placeholder={placeholder}
-      onChange={onChange}
-      defaultValue={defaultValue}
-    />
+  defaultValue = "",
+  required = false,
+  cleanRegex,
+  cleanEmpty = false,
+  readonly = false,
+  disabled = false,
+}: TextFieldProps) {
+  const [value, setValue] = useState(defaultValue)
+
+  const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
+    let inputValue = e.currentTarget.value
+
+    if (cleanEmpty) {
+      inputValue = inputValue.replace(/^\s+|(?<=\s)\s/g, "")
+    }
+    if (cleanRegex) {
+      inputValue = inputValue.replace(cleanRegex, () => "")
+    }
+
+    setValue(inputValue)
+
+    if (onChange) {
+      e.currentTarget.value = inputValue
+      onChange(e as React.ChangeEvent<HTMLInputElement>)
+    }
+  }
+
+  const inputContent = (
+    <div
+      className="flex items-center rounded-md px-2 outline-1 -outline-offset-1 has-[input:focus-within]:outline-2 has-[input:focus-within]:-outline-offset-2 has-[input:focus-within]:outline-primary transition-all duration-50"
+    >
+      <input
+        name={name}
+        className="block min-w-0 grow py-1.5 pr-3 pl-1 text-base focus:outline-none sm:text-sm/6"
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onInput={handleInput}
+        readOnly={readonly}
+        disabled={disabled}
+      />
+    </div>
+  )
+
+  const labelContent = (
+    <label htmlFor={name} className="block text-sm/6 font-medium">
+      {required && <strong className="text-red-500 mr-1">*</strong>}
+      {label}
+    </label>
+  )
+
+  return !label ? inputContent : (
+    <>
+      {labelContent}
+      {inputContent}
+    </>
   )
 }
 
@@ -132,6 +191,7 @@ export function SelectField({
 type FileFieldProps = {
   name: string
   onChange?: (file: File | null) => void
+  value?: File | string | null
 }
 
 /**
@@ -139,6 +199,7 @@ type FileFieldProps = {
  * 
  * @param name The name of the file input field, used as the key in the form data object
  * @param onChange A callback function that receives the selected file or null if no file is selected
+ * @param defaultValue The initial value of the file input field, which can be a File object, a string (file path), or null
  * 
  * @example
  * <FileField
@@ -149,12 +210,28 @@ type FileFieldProps = {
 export function FileField({
   name,
   onChange,
+  value,
 }: FileFieldProps) {
+  
+  const isUrl = typeof value == "string" && value.trim() != ""
+  
   return (
-    <input
-      name={name}
-      type="file"
-      onChange={e => onChange?.(e.target.files?.[0] || null) }
-    />
+    <div className="flex items-center gap-2">
+      <input
+        name={name}
+        type="file"
+        onChange={e => onChange?.(e.target.files?.[0] || null)}
+        value={value instanceof File ? undefined : undefined}
+      />
+
+      {isUrl && (
+        <a
+          href={value}
+          target="_blank"
+        >
+          Ver imagen
+        </a>
+      )}
+    </div>
   )
 }

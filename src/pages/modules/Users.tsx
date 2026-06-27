@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { establishmentService, profileService } from "../../services/cookiexpend"
 import { Table } from "../../components/Table"
 import { Button } from "../../components/Button"
 import { Pencil, Trash } from "lucide-react"
-import type { establishmentResponse, profileRequest, profileResponse, userRoleName } from "../../types/api"
+import type { ApiRequestError, establishmentResponse, profileRequest, profileResponse, userRoleName } from "../../types/api"
 import { Dialog, Modal } from "../../components/Modal"
 import { Form, SelectField, TextField } from "../../components/Form"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
@@ -26,6 +26,8 @@ export default function Users() {
     cb: useEventOnCUD<profileResponse>(setData)
   })
 
+  const profiles = useMemo(() => data?.filter(p => p.user.id != user?.id) || [], [data, user?.id])
+
   const openCreate = () => {
     setEditingProfile(null)
     setIsModalOpen(true)
@@ -44,18 +46,17 @@ export default function Users() {
   return (
     <>
       <StateGate
-        data={data}
+        data={profiles}
         error={error}
         loading={isLoading}
-        emptyProps={{ title: "Usuarios", content: "No deberías poder ver este mensaje" }}
+        emptyProps={{ title: "Usuarios", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
         {btnAdd}
         <Table
-          data={data!}
+          data={profiles}
           exportToExcel
           filename="Usuarios"
-          excludeFromView={row => row.user.id == user?.id}
           columns={[
             { accessorKey: "user.last_name", header: "Apellido" },
             { accessorKey: "user.first_name", header: "Nombre" },
@@ -131,31 +132,33 @@ function UserForm({
       ? request(profileService.upd(profile.id, data))
       : request(profileService.new(data))
     
-    ).then((response) => {
+    ).then(() => {
       console.warn("data sended, the default password is '0987654aA'")
-
-      if (!response) return
       alert("Perfil " + (profile ? "actualizado" : "creado") + " exitosamente")
       onDone?.()
     
-    }).catch((error) => {
-      console.error(error)
-      alert("Error al " + (profile ? "actualizar" : "crear") + " el perfil")
-    })
+    }).catch(err => onSubmitErrorHandler(err, profile ? "actualizar" : "crear"))
   }
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField
-        name="username"
-        placeholder="Nombre de usuario"
-        defaultValue={profile?.user.username}
-      />
-      <TextField
-        name="email"
-        placeholder="Correo electrónico"
-        defaultValue={profile?.user.email}
-      />
+      <div>
+        <TextField
+          required
+          name="username"
+          label="Nombre de usuario"
+          defaultValue={profile?.user.username}
+          cleanRegex={/[^A-za-z_-]/}
+        />
+      </div>
+      <div>
+        <TextField
+          required
+          name="email"
+          label="Correo electrónico"
+          defaultValue={profile?.user.email}
+        />
+      </div>
       <SelectField
         name="role"
         selected={profile?.role}
@@ -241,9 +244,33 @@ function DeleteDialog({
 
 const validateSubmit = (data: profileRequest): string | true => {
   if (!data.username) return "El nombre de usuario es requerido"
-  //if (!data.email) return "El correo electrónico es requerido"
+  if (!data.email) return "El correo electrónico es requerido"
+  if (!data.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return "El correo electrónico no es válido"
   if (!data.role) return "El rol es requerido"
   if (!data.establishment) return "El establecimiento es requerido"
   
   return true
+}
+
+const onSubmitErrorHandler = (err: ApiRequestError, action: "crear" | "actualizar") => {
+  const errData: Record<string, string> = err.data as Record<string, string>
+
+  if (errData?.username?.includes("is required")) {
+    alert("El nombre de usuario es requerido")
+    return
+  }
+  if (errData?.username?.includes("already in use")) {
+    alert("El nombre de usuario ya está en uso")
+    return
+  }
+  if (errData?.email?.includes("is required")) {
+    alert("El correo electrónico es requerido")
+    return
+  }
+  if (errData?.email?.includes("already in use")) {
+    alert("El correo electrónico ya está en uso")
+    return
+  }
+
+  alert(`Ocurrió un error inesperado al ${action} el usuario. Por favor, inténtelo más tarde.`)
 }

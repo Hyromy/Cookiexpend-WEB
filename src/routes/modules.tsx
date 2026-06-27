@@ -19,6 +19,7 @@ const Sales = lazy(() => import("../pages/modules/Sales"))
 const Factories = lazy(() => import("../pages/modules/Factories"))
 const Deliveries = lazy(() => import("../pages/modules/Deliveries"))
 const Inventories = lazy(() => import("../pages/modules/Inventories"))
+const Redirect = lazy(() => import("../pages/modules/Redirect"))
 
 export const MODULE_ROUTES: AppModuleRoute[] = [
   {
@@ -47,7 +48,7 @@ export const MODULE_ROUTES: AppModuleRoute[] = [
     element: <Deliveries />,
     label: "Repartos",
     icon: <Truck />,
-    allowRoles: ["Factory manager"],
+    allowRoles: ["Factory manager", "Store manager"],
   },
   {
     path: PATHS.inventories,
@@ -70,4 +71,11 @@ export const MODULE_ROUTES: AppModuleRoute[] = [
     icon: <Users2 />,
     allowRoles: ["Factory manager"],
   },
+  {
+    path: PATHS.loadingPanel,
+    element: <Redirect />,
+    allowRoles: ["Factory manager", "Store manager"],
+    icon: null,
+    label: "",
+  }
 ]

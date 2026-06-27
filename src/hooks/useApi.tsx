@@ -1,9 +1,11 @@
+import axios from "axios"
 import {
   useEffect,
   useRef,
   useState,
   useCallback
 } from "react"
+import type { ApiRequestError } from "../types/api"
 
 type ApiData = Record<string, unknown> | unknown[] | string | number | boolean | null
 
@@ -21,9 +23,30 @@ type UseApiOptions = {
   abortPrevious?: boolean
 }
 
-const parseError = (err: unknown): Error => {
-  if (err instanceof Error) return err
-  return new Error("Unknown error occurred")
+const parseError = (err: unknown): ApiRequestError => {
+  if (axios.isAxiosError(err)) {
+    const backendData = err.response?.data
+    const fallbackMessage = "Ocurrió un error al procesar la solicitud."
+
+    return {
+      message: backendData?.message || backendData?.detail || err.message || fallbackMessage,
+      status: err.response?.status,
+      data: backendData,
+      isNetworkError: !err.response,
+    }
+  }
+
+  if (err instanceof Error) {
+    return {
+      message: err.message,
+      isNetworkError: false,
+    }
+  }
+
+  return {
+    message: "Unknown error occurred.",
+    isNetworkError: false,
+  }
 }
 
 /**
@@ -59,7 +82,7 @@ const parseError = (err: unknown): Error => {
 export default function useApi<T = ApiData>(options: UseApiOptions = {}) {
   const [data, setData] = useState<T | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const [error, setError] = useState<ApiRequestError | null>(null)
   const activeRequestId = useRef(0)
   const controllerRef = useRef<AbortController | null>(null)
   const isMountedRef = useRef(true)
@@ -125,15 +148,17 @@ export default function useApi<T = ApiData>(options: UseApiOptions = {}) {
       if (controller.signal.aborted) {
         return null
       }
-
+    
+      const apiError = parseError(err)
+    
       if (isMountedRef.current && activeRequestId.current == requestId) {
         if (!shouldPreserveDataOnError) {
           setData(null)
         }
-        setError(parseError(err))
+        setError(apiError)
       }
-      return null
-    
+
+      throw apiError as ApiRequestError
     } finally {
       if (isMountedRef.current && activeRequestId.current == requestId) {
         setIsLoading(false)

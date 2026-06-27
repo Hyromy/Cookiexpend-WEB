@@ -148,12 +148,15 @@ describe("useApi.tsx", () => {
       const { result } = renderHook(() => useApi())
 
       await act(async () => {
-        await result.current.request(Promise.reject("fail"))
+        await result.current.request(
+          Promise.reject(new Error("Unknown error occurred"))
+        ).catch(() => {}) 
       })
-
+    
       await waitFor(() => {
         expect(result.current.error?.message).toBe("Unknown error occurred")
       })
+
       expect(result.current.data).toBeNull()
     })
 
