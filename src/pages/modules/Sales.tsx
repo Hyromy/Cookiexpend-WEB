@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { Table } from "../../components/Table"
@@ -10,9 +10,11 @@ import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import type { eventModel } from "../../types/events"
 import { Modal } from "../../components/Modal"
 import useAuth from "../../hooks/useAuth"
-import { Minus, Plus, Image } from "lucide-react"
-import { parseInventory, type parsedInventory } from "../../utils/parser"
+import { Minus, Plus, Image, TicketIcon } from "lucide-react"
+import { parseDate, parseInventory, type parsedInventory } from "../../utils/parser"
 import { API_URL } from "../../constants/config"
+import { Ticket } from "../../components/Ticket"
+import { useReactToPrint } from "react-to-print"
 
 const SALE_EVENTS = ["sell"] as eventModel[]
 
@@ -21,12 +23,26 @@ export default function Sales() {
   const { data, error, isLoading, request, setData } = useApi<saleResponse[]>()
   const requestData = useCallback(() => request(saleService.get()), [request])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const ticketRef = useRef<HTMLDivElement | null>(null)
+  const [selectedSale, setSelectedSale] = useState<saleResponse | null>(null)
 
   useEffect(() => { requestData() }, [requestData])
   useEvent({
     from: SALE_EVENTS,
     cb: useEventOnCUD<saleResponse>(setData)
   })
+
+  const handlePrint = useReactToPrint({
+    contentRef: ticketRef,
+    documentTitle: "Ticket",
+  })
+
+  const prepareAndPrint = (sale: saleResponse) => {
+    setSelectedSale(sale)
+    setTimeout(() => {
+      handlePrint?.()
+    }, 100)
+  }
 
   const btnSale = <Button onClick={() => { setIsModalOpen(true) }}>Registrar Nueva Venta</Button>
 
@@ -64,9 +80,21 @@ export default function Sales() {
               accessorKey: "total",
               header: "Total",
               cell: ({ getValue }) => `$${getValue()}`
+            },
+            {
+              id: "actions",
+              header: "Acciones",
+              cell: ({ row }) => (
+                <Button onClick={() => prepareAndPrint(row.original)}>
+                  <TicketIcon />
+                </Button>
+              )
             }
           ]}
         />
+      <div className="hidden">
+        {selectedSale && <ThisTicket ref={ticketRef} sale={selectedSale} />}
+      </div>
       </StateGate>
       <Modal
         isOpen={isModalOpen}
@@ -78,6 +106,92 @@ export default function Sales() {
         <SalesForm onDone={() => setIsModalOpen(false)} />
       </Modal>
     </>
+  )
+}
+
+type ThisTicketProps = {
+  ref: React.Ref<HTMLDivElement>
+  sale: saleResponse
+}
+function ThisTicket({ ref, sale }: ThisTicketProps) {
+  const totalProductsQty = sale.details?.reduce((acc, detail) => acc + detail.quantity, 0) || 0
+
+  const header = (
+    <>
+      <h2 className="text-sm font-bold tracking-wider uppercase">
+        {sale.store.establishment.name}
+      </h2>
+      <p className="text-[10px] leading-tight text-gray-600">
+        {sale.store.establishment.street} {sale.store.establishment?.number ? `#${sale.store.establishment.number}` : ''}<br />
+        Col. {sale.store.establishment.neighborhood}
+      </p>
+    </>
+  )
+  const identifiers = (
+    <>
+      <div><span className="font-bold">No. Ticket:</span> #{sale.id}</div>
+      <div><span className="font-bold">Fecha:</span> {parseDate(sale.date)}</div>
+      <div><span className="font-bold">Cajero:</span> {"{User}"}</div>
+    </>
+  )
+  const body = (
+    <table className="w-full text-left table-fixed">
+      <thead>
+        <tr className="border-b border-black font-bold">
+          <th className="pb-1 w-1/2">Prod</th>
+          <th className="pb-1 text-center w-1/6">Cant</th>
+          <th className="pb-1 text-right w-1/3">Total</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-dashed divide-gray-200">
+        {sale.details?.map((detail) => (
+          <tr key={detail.id} className="align-top">
+            <td className="py-1 pr-1 truncate">{detail.product?.name}</td>
+            <td className="py-1 text-center font-bold">{detail.quantity}</td>
+            <td className="py-1 text-right">${(Number(detail.price) * detail.quantity).toFixed(2)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+  const summary = (
+    <>
+      <div className="flex justify-between text-[10px] text-gray-700">
+        <span>Cant. Total Productos:</span>
+        <span className="font-bold">{totalProductsQty}</span>
+      </div>
+      <div className="flex justify-between font-bold text-xs pt-1 border-t-2 border-double border-black">
+        <span>TOTAL:</span>
+        <span>${sale.total}</span>
+      </div>
+      <div className="pt-1 text-[10px] space-y-0.5 border-t border-dashed border-gray-300">
+        <div className="flex justify-between">
+          <span>Recibido:</span>
+          <span>${sale.total}</span>
+        </div>
+        <div className="flex justify-between font-bold">
+          <span>Cambio:</span>
+          <span>${0}</span>
+        </div>
+      </div>
+    </>
+  )
+  const footer = (
+    <>
+      <p className="font-bold tracking-wide">¡GRACIAS POR SU COMPRA!</p>
+      <p className="text-[8px] text-gray-500">Para aclaraciones presente este comprobante.</p>
+    </>
+  )
+
+  return (
+    <Ticket
+      ref={ref}
+      header={header}
+      identifiers={identifiers}
+      body={body}
+      summary={summary}
+      footer={footer}
+    />
   )
 }
 

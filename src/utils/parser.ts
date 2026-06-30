@@ -37,3 +37,15 @@ export const parseInventory = (rawData: inventoryResponse[]): parsedInventory[] 
 
   return data
 }
+
+/**
+ * Parses a date string into a localized date format (es-MX) with short date and time styles.
+ * 
+ * @param date - A string representing the date to be parsed.
+ * @returns A string representing the localized date format.
+ */
+export const parseDate = (date: string): string => {
+  return new Date(date).toLocaleDateString("es-MX", {
+    dateStyle: "short"
+  })
+}
