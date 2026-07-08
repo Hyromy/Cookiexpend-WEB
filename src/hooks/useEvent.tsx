@@ -27,7 +27,7 @@ export default function useEvent({ from, on, cb }: {
   cb: (data: eventData) => void
 }) {
   useEffect(() => {
-    const eventSource = new EventSource(API_URL + "api/events/", {
+    const eventSource = new EventSource(API_URL + "api/store-mgmt/events/", {
       withCredentials: true,
     })
 

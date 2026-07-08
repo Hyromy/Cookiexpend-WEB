@@ -7,6 +7,9 @@ import { useNavigate } from "react-router-dom"
 import { PATHS } from "../../routes/paths"
 import type { sessionResponse } from "../../types/api"
 import useAuth from "../../hooks/useAuth"
+import { Card } from "../../components/Card"
+import { ThemeButton } from "../../components/Button"
+import { EMAIL_REGEX } from "../../constants/regex"
 
 type LoginData = {
   email: string
@@ -49,14 +52,62 @@ export default function Login() {
   }
 
   return (
-    <Form onSubmit={onSubmitHandler}>
-      <TextField name="email" placeholder="Email" />
-      <br />
-      <TextField name="password" type="password" placeholder="Password" />
-      <br />
-      <Button type="submit" disabled={isLoading}>
-        Login
-      </Button>
-    </Form>
+    <Card className="flex flex-col gap-8">
+      <Header />
+      <Form
+        onSubmit={onSubmitHandler}
+        className="flex flex-col gap-4"
+      >
+        <div>
+          <TextField
+            name="email"
+            label="Usuario o correo electrónico"
+            cleanRegex={new RegExp(`[^${EMAIL_REGEX}]`, "g")}
+          />
+        </div>
+        <div>
+          <TextField
+            name="password"
+            type="password"
+            label="Contraseña"
+          />
+        </div>
+        <div className="flex justify-center">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="px-8"
+            size="md"
+          >
+            Iniciar sesión
+          </Button>
+        </div>
+      </Form>
+      <Bottom />
+    </Card>
+  )
+}
+
+function Header() {
+  return (
+    <div className="text-center">
+      <h2 className="text-3xl font-bold tracking-tight">
+        Bienvenido de nuevo
+      </h2>
+      <p className="mt-2 text-sm text-muted">
+        Ingresa tus credenciales para acceder
+      </p>
+    </div>
+  )
+}
+
+function Bottom() {
+  return (
+    <div className="flex items-center justify-between">
+      <ThemeButton />
+      <a href={PATHS.recover_account} className="text-xs font-semibold text-muted hover:text-primary/75">
+        ¿Olvidaste tu contraseña?
+      </a>
+    </div>
   )
 }

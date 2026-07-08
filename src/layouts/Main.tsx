@@ -33,7 +33,7 @@ export default function Main() {
             <Aside closeCanvas={() => setActiveSidebar(null)} />
           </OffCanvas>
         </div>
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-full p-4">
           <Outlet />
         </div>
       </main>

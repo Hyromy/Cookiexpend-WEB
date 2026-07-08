@@ -3,14 +3,14 @@ import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { Table } from "../../components/Table"
 import { Form } from "../../components/Form"
-import { Button } from "../../components/Button"
+import { ActionButton, Button } from "../../components/Button"
 import { inventoryService, saleService } from "../../services/cookiexpend"
 import type { inventoryResponse, saleRequest, saleResponse } from "../../types/api"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import type { eventModel } from "../../types/events"
 import { Modal } from "../../components/Modal"
 import useAuth from "../../hooks/useAuth"
-import { Minus, Plus, Image, TicketIcon } from "lucide-react"
+import { Minus, Plus, Image } from "lucide-react"
 import { parseDate, parseInventory, type parsedInventory } from "../../utils/parser"
 import { API_URL } from "../../constants/config"
 import { Ticket } from "../../components/Ticket"
@@ -45,6 +45,9 @@ export default function Sales() {
   }
 
   const btnSale = <Button onClick={() => { setIsModalOpen(true) }}>Registrar Nueva Venta</Button>
+  const showBtnSale = useMemo(() => {
+    if (user?.role == "Store manager") return btnSale
+  }, [user?.role, btnSale])
 
   return (
     <>
@@ -52,10 +55,10 @@ export default function Sales() {
         data={data}
         error={error}
         loading={isLoading}
-        emptyProps={{ title: "Ventas", content: btnSale }}
+        emptyProps={{ title: "Ventas", content: showBtnSale }}
         errorProps={{ onRetry: requestData }}
       >
-        {user?.role == "Store manager" && btnSale}
+        {showBtnSale}
         <Table
           data={data!}
           exportToExcel
@@ -85,9 +88,11 @@ export default function Sales() {
               id: "actions",
               header: "Acciones",
               cell: ({ row }) => (
-                <Button onClick={() => prepareAndPrint(row.original)}>
-                  <TicketIcon />
-                </Button>
+                <ActionButton
+                  variant="info"
+                  icon="ticket"
+                  cb={() => prepareAndPrint(row.original)}
+                />
               )
             }
           ]}

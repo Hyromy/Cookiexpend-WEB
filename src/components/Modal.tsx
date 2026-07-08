@@ -1,5 +1,5 @@
 import { X } from "lucide-react"
-import { useEffect, type ReactNode} from "react"
+import { useEffect, type ReactNode, useState } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "./Button"
 import clsx from "clsx"
@@ -56,24 +56,48 @@ export function Modal({
   blockMissClick,
   size = "lg",
 }: ModalProps) {
-  useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden"
-    else document.body.style.overflow = "unset"
+  const [shouldRender, setShouldRender] = useState(false)
+  const [animate, setAnimate] = useState(false)
 
-    return () => { document.body.style.overflow = "unset" }
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+      setShouldRender(true)
+      const timer = setTimeout(() => setAnimate(true), 10)
+      return () => clearTimeout(timer)
+    } else {
+      setAnimate(false)
+      const timer = setTimeout(() => {
+        setShouldRender(false)
+        document.body.style.overflow = "unset"
+      }, 300)
+      return () => clearTimeout(timer)
+    }
   }, [isOpen])
 
-  if (!isOpen) return null
+  useEffect(() => {
+    return () => { document.body.style.overflow = "unset" }
+  }, [])
 
-  return createPortal (
+  if (!shouldRender) return null
+
+  return createPortal(
     <div className="fixed inset-0 z-100 flex items-center justify-center w-full h-full p-4">
       <div
-        className="fixed inset-0 bg-black/25 backdrop-blur-xs"
+        className={clsx(
+          "fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-200 ease-in-out",
+          animate ? "opacity-100" : "opacity-0"
+        )}
         onClick={() => { if (!blockMissClick) onClose() }}
       />
+
       <div className={clsx(
         "relative bg-card rounded-xl shadow-2xl overflow-auto border border-muted w-full max-h-full",
+        "transition-all duration-200 ease-out transform-gpu",
         SIZES[size],
+        animate 
+          ? "opacity-100 scale-100 translate-y-0"
+          : "opacity-0 scale-95 translate-y-4"
       )}>
         <div className="flex items-center justify-between p-4 border-b border-muted">
           {title && (
@@ -83,7 +107,7 @@ export function Modal({
           )}
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-muted/50 transition-colors"
+            className="p-2 rounded-full hover:bg-muted/50 transition-colors text-muted-foreground hover:text-fg"
           >
             <X className="w-6 h-6" />
           </button>

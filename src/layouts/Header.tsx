@@ -19,7 +19,7 @@ export default function Header() {
 
   const hideOnClasses = "lg:hidden"
   return (
-    <header className="sticky top-0 flex flex-col bg-card">
+    <header className="sticky top-0 flex flex-col bg-card z-50">
       <section className="border-b border-muted p-1 h-header-h">
         <div className="flex mx-auto w-full max-w-7xl items-center justify-between">
           <div className="flex items-center gap-2">
@@ -28,6 +28,7 @@ export default function Header() {
                 <Button
                   className={clsx("p-1 rounded-md", hideOnClasses)}
                   onClick={() => setActiveSidebar(activeSidebar != "navigation" ? "navigation" : null)}
+                  variant="ghost"
                 >
                   <Menu />
                 </Button>
@@ -78,16 +79,21 @@ function Profile() {
   return (
     <>
       <Dropdown
+        align="right"
         options={[
           <Button
-            className="w-full flex flex-row gap-2"
+            noFocusRing
+            variant="ghost"
+            className="w-full flex flex-row gap-2 hover:bg-bg/90"
             onClick={() => setIsModalOpen(true)}
           >
             <User2 />
             Perfil
           </Button>,
           <Button
-            className="w-full flex flex-row gap-2"
+            noFocusRing
+            variant="ghost"
+            className="w-full flex flex-row gap-2 hover:bg-bg/90 text-red-500"
             onClick={logoutHandler}
           >
             <LogOut />

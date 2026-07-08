@@ -1,4 +1,6 @@
 import { useState, type ReactNode, type SyntheticEvent } from "react"
+import { Eye, EyeOff } from "lucide-react"
+import { Button } from "./Button"
 
 type FormProps<T> = {
   children: ReactNode
@@ -43,7 +45,7 @@ export function Form<T>({
 
 type TextFieldProps = {
   name: string
-  type?: string
+  type?: "text" | "password"
   label?: string
   required?: boolean
   placeholder?: string
@@ -87,6 +89,7 @@ export function TextField({
   disabled = false,
 }: TextFieldProps) {
   const [value, setValue] = useState(defaultValue)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
     let inputValue = e.currentTarget.value
@@ -106,6 +109,8 @@ export function TextField({
     }
   }
 
+  const inputType = type == "password" ? (showPassword ? "text" : "password") : type
+
   const inputContent = (
     <div
       className="flex items-center rounded-md px-2 outline-1 -outline-offset-1 has-[input:focus-within]:outline-2 has-[input:focus-within]:-outline-offset-2 has-[input:focus-within]:outline-primary transition-all duration-50"
@@ -113,13 +118,24 @@ export function TextField({
       <input
         name={name}
         className="block min-w-0 grow py-1.5 pr-3 pl-1 text-base focus:outline-none sm:text-sm/6"
-        type={type}
+        type={inputType}
         placeholder={placeholder}
         value={value}
         onInput={handleInput}
         readOnly={readonly}
         disabled={disabled}
       />
+      {type == "password" && (
+        <Button
+          noFocusRing
+          variant="ghost"
+          onClick={() => setShowPassword(!showPassword)}
+          disabled={disabled}
+          className="flex items-center justify-center p-1 transition-colors hover:cursor-pointer"
+        >
+          {showPassword ? <EyeOff /> : <Eye />}
+        </Button>
+      )}
     </div>
   )
 

@@ -3,13 +3,13 @@ import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { establishmentService, profileService } from "../../services/cookiexpend"
 import { Table } from "../../components/Table"
-import { Button } from "../../components/Button"
-import { Pencil, Trash } from "lucide-react"
+import { ActionButton, Button } from "../../components/Button"
 import type { ApiRequestError, establishmentResponse, profileRequest, profileResponse, userRoleName } from "../../types/api"
 import { Dialog, Modal } from "../../components/Modal"
 import { Form, SelectField, TextField } from "../../components/Form"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import useAuth from "../../hooks/useAuth"
+import { EMAIL_REGEX, USERNAME_REGEX } from "../../constants/regex"
 
 export default function Users() {
   const { data, error, isLoading, request, setData } = useApi<profileResponse[]>()
@@ -71,10 +71,18 @@ export default function Users() {
               id: "actions",
               header: "Acciones",
               cell: ({ row }) => (
-                <>
-                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
-                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
-                </>
+                <div className="flex gap-2">
+                  <ActionButton
+                    variant="warning"
+                    icon="pencil"
+                    cb={() => openEdit(row.original)}
+                  />
+                  <ActionButton
+                    variant="danger"
+                    icon="trash"
+                    cb={() => openDelete(row.original)}
+                  />
+                </div>
               )
             }
           ]}
@@ -133,7 +141,6 @@ function UserForm({
       : request(profileService.new(data))
     
     ).then(() => {
-      console.warn("data sended, the default password is '0987654aA'")
       alert("Perfil " + (profile ? "actualizado" : "creado") + " exitosamente")
       onDone?.()
     
@@ -148,7 +155,7 @@ function UserForm({
           name="username"
           label="Nombre de usuario"
           defaultValue={profile?.user.username}
-          cleanRegex={/[^A-za-z_-]/}
+          cleanRegex={new RegExp(`[^${USERNAME_REGEX}]`, "g")}
         />
       </div>
       <div>
@@ -157,6 +164,7 @@ function UserForm({
           name="email"
           label="Correo electrónico"
           defaultValue={profile?.user.email}
+          cleanRegex={new RegExp(`[^${EMAIL_REGEX}]`, "g")}
         />
       </div>
       <SelectField

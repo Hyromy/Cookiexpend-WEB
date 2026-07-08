@@ -5,9 +5,8 @@ import type { ApiRequestError, establishmentRequest, establishmentResponse, stor
 import { storeService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { Form, TextField } from "../../components/Form"
-import { Button } from "../../components/Button"
+import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
-import { Pencil, Trash } from "lucide-react"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 
@@ -80,10 +79,18 @@ export default function Stores() {
               id: "actions",
               header: "Acciones",
               cell: ({ row }) => (
-                <>
-                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
-                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
-                </>
+                <div className="flex gap-2">
+                  <ActionButton
+                    variant="warning"
+                    icon="pencil"
+                    cb={() => openEdit(row.original)}
+                  />
+                  <ActionButton
+                    variant="danger"
+                    icon="trash"
+                    cb={() => openDelete(row.original)}
+                  />
+                </div>
               )
             }
           ]}

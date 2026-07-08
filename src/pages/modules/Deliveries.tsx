@@ -5,9 +5,8 @@ import type { ApiRequestError, deliveryRequest, deliveryResponse, establishmentR
 import { deliveryService, productService, storeService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { Form, SelectField, TextField } from "../../components/Form"
-import { Button } from "../../components/Button"
+import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
-import { Pencil, Trash, Check, CircleSlash } from "lucide-react"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 import useAuth from "../../hooks/useAuth"
@@ -70,21 +69,25 @@ export default function Deliveries() {
     setIsDialogOpen(false)
   }
   const renderActionButtons = (delivery: deliveryResponse) => {
-    const upd = <Button onClick={() => openEdit(delivery)}><Pencil /></Button>
+    const upd = <ActionButton variant="warning" icon="pencil" cb={() => openEdit(delivery)} />
     const status = (
-      <Button
-        onClick={() => {
+      <ActionButton
+        variant="success"
+        icon="check"
+        cb={() => {
           setStatusStep(1)
           openStatus(delivery)
         }}
-      >
-        <Check />
-      </Button>
+      />
     )
     const allButtons = (
       <>
         {upd}
-        <Button onClick={() => openDelete(delivery)}><Trash /></Button>
+        <ActionButton
+          variant="danger"
+          icon="trash"
+          cb={() => openDelete(delivery)}
+        />
         {status}
       </>
     )
@@ -97,14 +100,14 @@ export default function Deliveries() {
         return user?.role == "Store manager"
         ? status
         : (
-          <Button
-            onClick={() => {
+          <ActionButton
+            variant="danger"
+            icon="forbidden"
+            cb={() => {
               setStatusStep(-1)
               openStatus(delivery)
             }}
-          >
-            <CircleSlash />
-          </Button>
+          />
         )
 
       case "completed":
@@ -133,16 +136,20 @@ export default function Deliveries() {
     )
   }, [data, user?.role])
 
+  const showBtnAdd = useMemo(() => {
+    if (user?.role == "Factory manager") return btnAdd
+  }, [user?.role, btnAdd])
+
   return (
     <>
       <StateGate
         data={filteredData}
         error={error}
         loading={isLoading}
-        emptyProps={{ title: "Repartos", content: btnAdd }}
+        emptyProps={{ title: "Repartos", content: showBtnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {user?.role == "Factory manager" && btnAdd}
+        {showBtnAdd}
         <Table
           data={filteredData!}
           exportToExcel
@@ -167,7 +174,11 @@ export default function Deliveries() {
             {
               id: "actions",
               header: "Acciones",
-              cell: ({ row }) => renderActionButtons(row.original)
+              cell: ({ row }) => (
+                <div className="flex gap-2">
+                  {renderActionButtons(row.original)}
+                </div>
+              )
             }
           ]}
         />

@@ -5,9 +5,8 @@ import { productService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
 import { FileField, Form, TextField } from "../../components/Form"
-import { Button } from "../../components/Button"
+import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
-import { Image, Pencil, Trash } from "lucide-react"
 import type { eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 
@@ -77,25 +76,33 @@ export default function Products() {
               accessorKey: "img",
               header: "Imagen",
               cell: ({ getValue }) => getValue() && (
-                <Button
+                <ActionButton
+                  variant="info"
+                  icon="image"
                   disabled={!getValue()}
-                  onClick={() => {
+                  cb={() => {
                     setImageSrc(getValue() as string)
                     setIsImageOpen(true)
                   }}
-                >
-                  <Image />
-                </Button>
+                />
               )
             },
             {
               id: "actions",
               header: "Acciones",
               cell: ({ row }) => (
-                <>
-                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
-                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
-                </> 
+                <div className="flex gap-2">
+                  <ActionButton
+                    variant="warning"
+                    icon="pencil"
+                    cb={() => openEdit(row.original)}
+                  />
+                  <ActionButton
+                    variant="danger"
+                    icon="trash"
+                    cb={() => openDelete(row.original)}
+                  />
+                </div>
               )
             }
           ]}
@@ -124,7 +131,7 @@ export default function Products() {
         isOpen={isImageOpen}
         onClose={() => {
           setIsImageOpen(false)
-          setImageSrc("")
+          setTimeout(() => setImageSrc(""), 300)
         }}
         title="Imagen del producto"
       >
