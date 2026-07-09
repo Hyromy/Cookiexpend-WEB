@@ -53,7 +53,14 @@ export default function Stores() {
     setIsDialogOpen(true)
   }
   
-  const btnAdd = <Button onClick={openCreate}>Agregar Expendio</Button>
+  const btnAdd = (
+    <Button
+      onClick={openCreate}
+      className="px-6"
+    >
+      Agregar Expendio
+    </Button>
+  )
 
   return (
     <>
@@ -64,7 +71,9 @@ export default function Stores() {
         emptyProps={{ title: "Expendios", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {btnAdd}
+        <div className="mb-2">
+          {btnAdd}
+        </div>
         <Table
           data={data!}
           exportToExcel

@@ -1,6 +1,20 @@
-import { useState, type ReactNode, type SyntheticEvent } from "react"
-import { Eye, EyeOff } from "lucide-react"
+import { 
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type SyntheticEvent,
+  type ChangeEvent,
+} from "react"
+import {
+  Eye,
+  EyeOff,
+  ChevronDown,
+  Upload,
+  Download,
+} from "lucide-react"
 import { Button } from "./Button"
+import { clsx } from "clsx"
 
 type FormProps<T> = {
   children: ReactNode
@@ -154,31 +168,35 @@ export function TextField({
   )
 }
 
-type SelectFieldProps = {
+export type SelectFieldProps = {
   name: string
-  options: { value: string, label: string }[]
+  options: {
+    value: string
+    label: string,
+    disabled?: boolean
+  }[]
   placeholder?: string
-  selected?: string,
+  selected?: string
+  label?: string
+  required?: boolean
+  disabled?: boolean
   onChange?: (value: string) => void
 }
 
 /**
  * A reusable select component for forms, allowing selection from predefined options.
- * 
- * @param name The name of the select field, used as the key in the form data object
- * @param options An array of options to display in the dropdown, each with a value and label
- * @param placeholder An optional placeholder option that appears when no selection is made
- * @param selected The value of the currently selected option (optional)
- * 
- * @example
+ * * @example
  * const options = [
  *   { value: "admin", label: "Admin role" },
  *   { value: "user", label: "User role" },
  * ]
+ * 
  * <SelectField
  *   name="role"
+ *   label="Role"
  *   options={options}
  *   placeholder="Select a role"
+ *   required
  * /> 
  */
 export function SelectField({
@@ -186,26 +204,113 @@ export function SelectField({
   options,
   placeholder,
   selected,
+  label,
+  required = false,
+  disabled = false,
   onChange,
 }: SelectFieldProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [value, setValue] = useState(selected || "")
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleSelect = (val: string, optDisabled?: boolean) => {
+    if (optDisabled) return
+    setValue(val)
+    setIsOpen(false)
+    onChange?.(val)
+  }
+
+  const labelContent = label && (
+    <label className="block text-sm/6 font-medium mb-1">
+      {required && <strong className="text-red-500 mr-1">*</strong>}
+      {label}
+    </label>
+  )
+
+  const selectedOption = options.find(opt => opt.value == value)
+
   return (
-    <select
-      name={name}
-      defaultValue={selected}
-      onChange={e => onChange?.(e.target.value)}
-    >
-      {placeholder && <option value="">{placeholder}</option>}
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
+    <div className="w-full" ref={containerRef}>
+      <input type="hidden" name={name} value={value} required={required} />
+      {labelContent}
+      <div className="relative">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setIsOpen(!isOpen)}
+          className={clsx(
+            "flex w-full items-center justify-between rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 transition-all duration-150 text-left outline-gray-300",
+            isOpen ? "outline-2 -outline-offset-2 outline-primary" : "focus:outline-2 focus:-outline-offset-2 focus:outline-primary",
+            disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+          )}
+        >
+          <span className={clsx(!selectedOption && "opacity-10")}>
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+          <ChevronDown
+            className={clsx(
+              "size-4 opacity-60 transition-transform duration-300 ml-2",
+              isOpen && "rotate-180"
+            )}
+          />
+        </button>
+
+        <ul 
+          className={clsx(
+            "absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-md p-1 text-base sm:text-sm/6 shadow-xl focus:outline-none",
+            "bg-initial/75 backdrop-blur-2xl transition-all duration-300 ease-out origin-top outline outline-neutral-500/30",
+            isOpen
+              ? "opacity-100 scale-100 pointer-events-auto"
+              : "opacity-0 scale-95 pointer-events-none -translate-y-1"
+          )}
+        >
+          {placeholder && (
+            <li
+              onClick={() => handleSelect("")}
+              className="relative cursor-pointer select-none py-1.5 px-3 rounded-sm opacity-50 hover:bg-neutral-500/10 transition-colors"
+            >
+              {placeholder}
+            </li>
+          )}
+          {options.map((option) => {
+            const isSelected = value == option.value
+            return (
+              <li
+                key={option.value}
+                onClick={() => handleSelect(option.value, option.disabled)}
+                className={clsx(
+                  "relative select-none py-1.5 px-3 rounded-sm transition-colors",
+                  option.disabled
+                    ? "opacity-40 cursor-not-allowed bg-neutral-500/5"
+                    : "cursor-pointer hover:bg-neutral-500/10",
+                  isSelected && "bg-primary text-white! font-medium"
+                )} 
+              >
+                {option.label}
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </div>
   )
 }
 
 type FileFieldProps = {
   name: string
+  label?: string
+  required?: boolean
+  disabled?: boolean
   onChange?: (file: File | null) => void
   value?: File | string | null
 }
@@ -225,29 +330,64 @@ type FileFieldProps = {
  */
 export function FileField({
   name,
+  label,
+  required = false,
+  disabled = false,
   onChange,
   value,
 }: FileFieldProps) {
-  
+  const [fileName, setFileName] = useState<string | null>(null)
   const isUrl = typeof value == "string" && value.trim() != ""
-  
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        name={name}
-        type="file"
-        onChange={e => onChange?.(e.target.files?.[0] || null)}
-        value={value instanceof File ? undefined : undefined}
-      />
 
-      {isUrl && (
-        <a
-          href={value}
-          target="_blank"
-        >
-          Ver imagen
-        </a>
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setFileName(file ? file.name : null)
+    onChange?.(file)
+  }
+
+  return (
+    <div className="w-full space-y-1">
+      {label && (
+        <label className="block text-sm/6 font-medium">
+          {required && <strong className="text-red-500 mr-1">*</strong>}
+          {label}
+        </label>
       )}
+      <div className="flex items-center gap-2">
+        <label
+          className={clsx(
+            "flex grow items-center gap-2 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 transition-all duration-50 bg-initial",
+            "has-[input:focus-within]:outline-2 has-[input:focus-within]:-outline-offset-2 has-[input:focus-within]:outline-primary",
+            disabled
+              ? "cursor-not-allowed opacity-50"
+              : "cursor-pointer hover:bg-neutral-500/5"
+          )}
+        >
+          <input
+            name={name}
+            type="file"
+            required={required && !isUrl}
+            disabled={disabled}
+            onChange={handleFileChange}
+            className="sr-only"
+          />
+          <Upload className="size-4 shrink-0 opacity-60 text-primary" />
+          <span className="truncate opacity-80 grow">
+            {fileName ? fileName : isUrl ? "Cambiar archivo actual..." : "Seleccionar archivo..."}
+          </span>
+        </label>
+        {isUrl && (
+          <a
+            href={value as string}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 hover:bg-neutral-500/5 font-medium transition-colors duration-150 h-full shrink-0"
+            title="Descargar archivo actual"
+          >
+            <Download className="p-1 text-primary opacity-60" />
+          </a>
+        )}
+      </div>
     </div>
   )
 }

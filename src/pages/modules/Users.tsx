@@ -6,7 +6,7 @@ import { Table } from "../../components/Table"
 import { ActionButton, Button } from "../../components/Button"
 import type { ApiRequestError, establishmentResponse, profileRequest, profileResponse, userRoleName } from "../../types/api"
 import { Dialog, Modal } from "../../components/Modal"
-import { Form, SelectField, TextField } from "../../components/Form"
+import { Form, SelectField, TextField, type SelectFieldProps } from "../../components/Form"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import useAuth from "../../hooks/useAuth"
 import { EMAIL_REGEX, USERNAME_REGEX } from "../../constants/regex"
@@ -41,7 +41,14 @@ export default function Users() {
     setIsDialogOpen(true)
   }
 
-  const btnAdd = <Button onClick={openCreate}>Agregar Usuario</Button>
+  const btnAdd = (
+    <Button
+      onClick={openCreate}
+      className="px-6"
+    >
+      Agregar Usuario
+    </Button>
+  )
 
   return (
     <>
@@ -52,7 +59,9 @@ export default function Users() {
         emptyProps={{ title: "Usuarios", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {btnAdd}
+        <div className="mb-2">
+          {btnAdd}
+        </div>
         <Table
           data={profiles}
           exportToExcel
@@ -119,13 +128,14 @@ function UserForm({
   profile,
   onDone
 }: UserFormProps) {
-  const options: { value: userRoleName, label: string }[] = [
+  const options: SelectFieldProps["options"] = [
+    { value: "", label: "Seleccione un rol", disabled: true },
     { value: "store", label: "Responsable de expendio" },
     { value: "factory", label: "Responsable de planta" },
   ]
 
   const { isLoading, request, setData } = useApi()
-  const [currentRole, setCurrentRole] = useState<userRoleName>(options[0].value)
+  const [currentRole, setCurrentRole] = useState<userRoleName | "">(options[0].value as userRoleName | "")
 
   useEffect(() => { if (profile) setData(profile) }, [profile, setData])
 
@@ -169,23 +179,32 @@ function UserForm({
       </div>
       <SelectField
         name="role"
+        label="Rol de usuario"
+        required
         selected={profile?.role}
         options={options}
         onChange={v => setCurrentRole(v as userRoleName)}
       />
       <EstablishmentSelect
+        key={currentRole}
         role={currentRole!}
         profile={profile}
       />
-      <Button type="submit" disabled={isLoading}>
-        Enviar
-      </Button>
+      <div className="flex justify-center">
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="px-6"
+        >
+          Enviar
+        </Button>
+      </div>
     </Form>
   )
 }
 
 type EstablishmentSelectProps = {
-  role: userRoleName
+  role: userRoleName | ""
   profile?: profileResponse | null
 }
 function EstablishmentSelect({
@@ -196,15 +215,36 @@ function EstablishmentSelect({
 
   useEffect(() => { request(establishmentService.get()) }, [request])
 
+  const options = useMemo(() => {
+    const thisData: SelectFieldProps["options"] = []
+    if (!role) {
+      thisData.push({ value: "", label: "Seleccione un rol primero", disabled: true })
+    }
+
+    if (data) {
+      thisData.push(
+        {
+          label: "Seleccione un" + (role == "factory" ? "a planta" : " expendio"),
+          value: "",
+          disabled: true
+        },
+        ...data.filter(e => e.type == role).map(e => ({
+          value: e.id.toString(),
+          label: e.name
+        }))
+      )
+    }
+    return thisData
+  }, [data, role])
+
   return !isLoading && (
     <SelectField
+      disabled={!role}
+      required
+      label="Establecimiento"
       name="establishment"
-      options={data
-        ?.filter(e => e.type == role)
-        .map(e => ({ value: e.id.toString(), label: e.name }))
-        || []
-      }
-      selected={profile?.[role]?.establishment.id.toString()}
+      options={options}
+      selected={role && profile?.[role]?.establishment.id.toString()}
     />
   )
 }

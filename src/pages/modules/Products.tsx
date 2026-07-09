@@ -48,7 +48,14 @@ export default function Products() {
     setIsDialogOpen(true)
   }
 
-  const btnAdd = <Button onClick={openCreate}>Agregar Producto</Button>
+  const btnAdd = (
+    <Button
+      onClick={openCreate}
+      className="px-6"
+    >
+      Agregar Producto
+    </Button>
+  )
 
   return (
     <>
@@ -59,7 +66,9 @@ export default function Products() {
         emptyProps={{ title: "Productos", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {btnAdd}
+        <div className="mb-2">
+          {btnAdd}
+        </div>
         <Table
           data={data!}
           exportToExcel
@@ -207,6 +216,8 @@ function ProductForm({ product, onDone }: ProductFormProps) {
       </div>
       <div>
         <FileField
+          label="Imagen"
+          required={!product}
           name="img"
           value={product?.img}
         />

@@ -3,6 +3,7 @@ import { useEffect, type ReactNode, useState } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "./Button"
 import clsx from "clsx"
+import { MessageCircleWarning } from "lucide-react"
 
 type modalSizes = "sm" | "md" | "lg" | "xl" | "xxl"
 
@@ -18,7 +19,7 @@ type ModalProps = {
   children: ReactNode
   isOpen: boolean
   onClose: () => void
-  title?: string
+  title?: ReactNode
   blockMissClick?: boolean
   size?: modalSizes
 }
@@ -102,7 +103,14 @@ export function Modal({
         <div className="flex items-center justify-between p-4 border-b border-muted">
           {title && (
             <h3 className="text-xl font-bold text-fg">
-              {title}
+              {blockMissClick
+                ? (
+                  <div className="flex items-center gap-2">
+                    <MessageCircleWarning className="text-primary" />
+                    {title}
+                  </div>
+                ) : title
+              }
             </h3>
           )}
           <button
@@ -182,14 +190,17 @@ export function Dialog({
       </div>
       <div className="mt-6 flex justify-end gap-4">
         <Button
+          variant="secondary"
           onClick={onCancel ?? onClose}
           disabled={loading}
+          className="px-6"
         >
           {cancelText}
         </Button>
         <Button
           onClick={onConfirm}
           disabled={loading}
+          className="px-6"
         >
           {confirmText}
         </Button>

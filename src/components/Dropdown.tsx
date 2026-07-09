@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { ChevronDown } from "lucide-react"
+import { clsx } from "clsx"
 
 type DropdownAlign = "left" | "right"
 
@@ -51,26 +52,35 @@ export default function Dropdown({
   }
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef}>
+    <div
+      className="relative inline-block text-left"
+      ref={dropdownRef}
+    >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="px-4 py-2 flex flex-row items-center gap-2"
+        className="px-4 py-2 flex flex-row items-center gap-2 cursor-pointer"
       >
         <div className="flex items-center gap-2">{children}</div>
-        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={clsx(
+            "h-4 w-4 transition-transform duration-300",
+            isOpen && "rotate-180"
+          )}
+        />
       </button>
 
       {shouldRender && (
         <div
-          className={`absolute ${alignClasses[align]} mt-2 w-48 rounded-lg shadow-lg z-50 overflow-hidden border border-muted/50 backdrop-blur-md bg-bg/75 
-            transition-all duration-200 ease-in-out
-            ${animate 
-              ? "opacity-100 translate-y-0 scale-100" 
+          className={clsx(
+            "absolute mt-2 w-48 rounded-lg shadow-lg z-50 overflow-hidden border border-muted/50 backdrop-blur-md bg-bg/95 transition-all duration-300 ease-in-out",
+            alignClasses[align],
+            animate
+              ? "opacity-100 translate-y-0 scale-100"
               : "opacity-0 -translate-y-2 scale-95"
-            }`}
+          )}
         >
           {options.map((option, index) => (
-            <div key={index} className="transition-colors cursor-pointer">
+            <div key={index} className="transition-colors">
               {option}
             </div>
           ))}

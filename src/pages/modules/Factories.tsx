@@ -53,7 +53,14 @@ export default function Factories() {
     setIsDialogOpen(true)
   }
 
-  const btnAdd = <Button onClick={openCreate}>Agregar Planta</Button>
+  const btnAdd = (
+    <Button
+      onClick={openCreate}
+      className="px-6"
+    >
+      Agregar Planta
+    </Button>
+  )
 
   return (
     <>
@@ -64,7 +71,9 @@ export default function Factories() {
         emptyProps={{ title: "Plantas", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {btnAdd}
+        <div className="mb-2">
+          {btnAdd}
+        </div>
         <Table
           data={data!}
           exportToExcel

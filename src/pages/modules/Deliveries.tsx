@@ -4,12 +4,14 @@ import useApi from "../../hooks/useApi"
 import type { ApiRequestError, deliveryRequest, deliveryResponse, establishmentResponse, factoryResponse, packageResponse, productResponse, statusName, storeResponse } from "../../types/api"
 import { deliveryService, productService, storeService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
-import { Form, SelectField, TextField } from "../../components/Form"
+import { Form, SelectField, TextField, type SelectFieldProps } from "../../components/Form"
 import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 import useAuth from "../../hooks/useAuth"
+import Dropdown from "../../components/Dropdown"
+import { clsx } from "clsx"
 
 const DELIVERY_EVENTS = ["delivery"] as eventModel[]
 const STORE_FACTORY_EVENTS = ["store", "factory"] as eventModel[]
@@ -121,7 +123,14 @@ export default function Deliveries() {
     }
   }
 
-  const btnAdd = <Button onClick={openCreate}>Agregar Reparto</Button>
+  const btnAdd = (
+    <Button
+      onClick={openCreate}
+      className="px-6"
+    >
+      Agregar Reparto
+    </Button>
+  )
 
   const filteredData = useMemo(() => {
     if (!data) return null
@@ -149,7 +158,9 @@ export default function Deliveries() {
         emptyProps={{ title: "Repartos", content: showBtnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {showBtnAdd}
+        <div className="mb-2">
+          {showBtnAdd}
+        </div>
         <Table
           data={filteredData!}
           exportToExcel
@@ -161,15 +172,37 @@ export default function Deliveries() {
               ? [{ accessorKey: "store.establishment.name", header: "Expendio" }]
               : []
             ),
-            { accessorKey: "status.name", header: "Estado" },
+            {
+              id: "status",
+              header: "Estado",
+              cell: ({ row }) => <StatusBadge status={row.original.status.name} />
+            },
             {
               id: "products",
               header: "Productos",
-              cell: ({ row }) => (
-                row.original.package
-                  .map(p => `${p.product.name} (x${p.quantity})`)
-                  .join(", ")
-              )
+              cell: ({ row }) => {
+                const totalProducts = row.original.package.flatMap(p => Array(p.quantity).fill(p)).length
+
+                return (
+                  <>
+                    <span className="hidden">
+                      {totalProducts}
+                    </span>
+                    <Dropdown
+                      options={row.original.package.map(p => (
+                        <span
+                          key={p.product.id}
+                          className="block px-4 py-2 text-sm text-fg"
+                        >
+                          {p.product.name} (x{p.quantity})
+                        </span>
+                      ))}
+                    >
+                      {totalProducts}
+                    </Dropdown>
+                  </>
+                )
+              }
             },
             {
               id: "actions",
@@ -293,23 +326,31 @@ function ThisSelect({
 
   useEffect(() => { getterRef.current = getter }, [getter])
   useEffect(() => { request(getterRef.current()) }, [request])
-
   useEffect(() => {
     if (error) {
       console.error(error)
     }
   }, [error])
 
+  const displayData = useMemo(() => {
+    const thisData: SelectFieldProps["options"] = [
+      { value: "", label: "Seleccione una opción", disabled: true }
+    ]
+    if (data) {
+      thisData.push(...data.map((x) => (
+        { value: x.id.toString(), label: x.establishment.name }
+      )))
+    }
+    return thisData
+  }, [data])
+
   return !isLoading && (
     <SelectField
+      required
       name={name}
-      placeholder={placeholder}
+      label={placeholder}
       selected={defaultValue}
-      options={
-        (data || []).map((x) =>
-          ({ value: x.id.toString(), label: x.establishment.name })
-        )
-      }
+      options={displayData}
     />
   )
 }
@@ -413,6 +454,29 @@ function ThisDialog({
     >
       ¿Estás seguro que quieres {isDelete ? "eliminar" : "cambiar el estado de"} el reparto con ID "{delivery?.id}"?
     </Dialog>
+  )
+}
+
+function StatusBadge({ status }: { status: statusName }) {
+  const statusClasses = {
+    pending: "bg-warning/30",
+    in_progress: "bg-info/30",
+    completed: "bg-success/30",
+    cancelled: "bg-danger/30",
+    stopped: "bg-danger/30"
+  }
+  const statusText = {
+    pending: "Pendiente",
+    in_progress: "En progreso",
+    completed: "Completado",
+    cancelled: "Cancelado",
+    stopped: "Detenido"
+  }
+
+  return (
+    <span className={clsx("px-2 py-1 rounded-lg text-sm font-semibold", statusClasses[status])}>
+      {statusText[status]}
+    </span>
   )
 }
 

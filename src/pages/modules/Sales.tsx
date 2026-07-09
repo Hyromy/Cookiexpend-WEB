@@ -15,6 +15,7 @@ import { parseDate, parseInventory, type parsedInventory } from "../../utils/par
 import { API_URL } from "../../constants/config"
 import { Ticket } from "../../components/Ticket"
 import { useReactToPrint } from "react-to-print"
+import Dropdown from "../../components/Dropdown"
 
 const SALE_EVENTS = ["sell"] as eventModel[]
 
@@ -44,7 +45,14 @@ export default function Sales() {
     }, 100)
   }
 
-  const btnSale = <Button onClick={() => { setIsModalOpen(true) }}>Registrar Nueva Venta</Button>
+  const btnSale = (
+    <Button
+      onClick={() => { setIsModalOpen(true) }}
+      className="px-6"
+    >
+      Registrar Nueva Venta
+    </Button>
+  )
   const showBtnSale = useMemo(() => {
     if (user?.role == "Store manager") return btnSale
   }, [user?.role, btnSale])
@@ -58,7 +66,9 @@ export default function Sales() {
         emptyProps={{ title: "Ventas", content: showBtnSale }}
         errorProps={{ onRetry: requestData }}
       >
-        {showBtnSale}
+        <div className="mb-2">
+          {showBtnSale}
+        </div>
         <Table
           data={data!}
           exportToExcel
@@ -69,16 +79,38 @@ export default function Sales() {
               ? [{ accessorKey: "store.establishment.name", header: "Expendio" }]
               : []
             ),
-            { 
+            {
               accessorKey: "details",
-              header: "Detalles",
-              cell: ({ getValue }) => (
-                (getValue() as saleResponse["details"])
-                  .map(d => `${d.product.name} $${d.price} x${d.quantity}`)
-                  .join(", ")
-              )
+              header: "Productos vendidos",
+              cell: ({ getValue }) => {
+                const totalProducts = (getValue() as saleResponse["details"]).flatMap(p => Array(p.quantity).fill(p)).length
+    
+                return (
+                  <>
+                    <span className="hidden">
+                      {totalProducts}
+                    </span>
+                    <Dropdown
+                      options={(getValue() as saleResponse["details"]).map(p => (
+                        <span
+                          key={p.product.id}
+                          className="block px-4 py-2 text-sm text-fg"
+                        >
+                          {p.product.name} (x{p.quantity}), ${p.price}
+                        </span>
+                      ))}
+                    >
+                      {totalProducts}
+                    </Dropdown>
+                  </>
+                )
+              }
             },
-            { accessorKey: "date", header: "Fecha" },
+            { 
+              accessorKey: "date",
+              header: "Fecha",
+              cell: ({ getValue }) => parseDate(getValue() as string)
+            },
             {
               accessorKey: "total",
               header: "Total",
@@ -266,19 +298,22 @@ function SalesForm({
       />
       <hr className="border-muted" />
       <PriceDisplay total={total} />
-      <div className="flex flex-row">
+      <div className="flex flex-row gap-4">
+        <Button
+          type="reset"
+          variant="secondary"
+          onClick={clearForm}
+          disabled={pushLoading}
+          className="px-6"
+        >
+          Restablecer
+        </Button>
         <Button
           type="submit"
           disabled={pushLoading}
+          className="px-6"
         >
           Vender
-        </Button>
-        <Button
-          type="reset"
-          onClick={clearForm}
-          disabled={pushLoading}
-        >
-          Restablecer
         </Button>
       </div>
     </Form>

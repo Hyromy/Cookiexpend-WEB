@@ -10,6 +10,7 @@ import useAuth from "../../hooks/useAuth"
 import { Image } from "lucide-react"
 import { parseInventory, type parsedInventory } from "../../utils/parser"
 import { API_URL } from "../../constants/config"
+import Dropdown from "../../components/Dropdown"
 
 const INVENTORY_EVENTS = ["inventory"] as eventModel[]
 const SELL_EVENTS = ["sell"] as eventModel[]
@@ -62,12 +63,30 @@ function ThisTable({ data }: { data: parsedInventory[] }) {
         {
           accessorKey: "products",
           header: "Productos",
-          cell: ({ getValue }) => (
-            (getValue() as parsedInventory["products"])
-              .map(p => `${p.product.name} (x${p.quantity})`)
-              .join(", ")
-          )
-        }
+          cell: ({ getValue }) => {
+            const totalProducts = (getValue() as parsedInventory["products"]).flatMap(p => Array(p.quantity).fill(p)).length
+
+            return (
+              <>
+                <span className="hidden">
+                  {totalProducts}
+                </span>
+                <Dropdown
+                  options={(getValue() as parsedInventory["products"]).map(p => (
+                    <span
+                      key={p.product.id}
+                      className="block px-4 py-2 text-sm text-fg"
+                    >
+                      {p.product.name} (x{p.quantity})
+                    </span>
+                  ))}
+                >
+                  {totalProducts}
+                </Dropdown>
+              </>
+            )
+          }
+        },
       ]}
     />
   )

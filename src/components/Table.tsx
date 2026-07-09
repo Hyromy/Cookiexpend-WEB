@@ -17,10 +17,11 @@ import {
   ArrowUpWideNarrow,
   ChevronLeft,
   ChevronRight,
-  Download,
   Search,
 } from "lucide-react"
 import { Button } from "./Button"
+import { SelectField } from "./Form"
+import { Excel } from "./Icon"
 
 type TableProps<T> = {
   data: T[]
@@ -123,10 +124,9 @@ export function Table<T>({
           variant="ghost"
           noFocusRing
           onClick={exportToExcelHandler}
-          className="flex items-center gap-2 border-2 border-green-500"
+          className="flex items-center gap-2 border-2 border-[#107C41] text-[#107C41] hover:bg-green-50"
         >
-          <Download />
-          <span>Exportar Excel</span>
+          <Excel className="stroke-[#107C41]" />
         </Button>
       )}
     </div>
@@ -159,34 +159,32 @@ export function Table<T>({
         </div>          
         <div className="flex items-center gap-2">
           <span>Mostrar:</span>
-          <select
-            value={table.getState().pagination.pageSize}
-            onChange={e => table.setPageSize(Number(e.target.value))}
-            className="bg-bg/40 border border-muted/50 rounded-md px-2 py-1 text-sm outline-none focus:border-primary cursor-pointer text-foreground"
-          >
-            {paginationSizeOptions.map(pageSize => (
-              <option key={pageSize} value={pageSize} className="bg-bg text-foreground">
-                {pageSize}
-              </option>
-            ))}
-          </select>
+          <SelectField
+            name=""
+            onChange={value => table.setPageSize(Number(value))}
+            selected={table.getState().pagination.pageSize.toString()}
+            options={paginationSizeOptions.map(size => ({
+              value: size.toString(),
+              label: String(size)
+            }))}
+          />
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <button
+        <Button
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
           className="p-2 border border-muted/50 rounded-md bg-bg/40 hover:bg-muted/20 disabled:opacity-40 disabled:pointer-events-none transition-all active:scale-95"
         >
           <ChevronLeft className="h-4 w-4 text-foreground" />
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
           className="p-2 border border-muted/50 rounded-md bg-bg/40 hover:bg-muted/20 disabled:opacity-40 disabled:pointer-events-none transition-all active:scale-95"
         >
           <ChevronRight className="h-4 w-4 text-foreground" />
-        </button>
+        </Button>
       </div>
     </div>
   )
