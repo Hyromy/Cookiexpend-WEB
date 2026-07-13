@@ -7,12 +7,13 @@ import useApi from "../hooks/useApi"
 import { authService } from "../services/cookiexpend"
 import { useLocation, useNavigate } from "react-router-dom"
 import { PATHS } from "../routes/paths"
-import { Modal } from "../components/Modal"
+import { Dialog, Modal } from "../components/Modal"
 import { useState } from "react"
 import { Form, TextField } from "../components/Form"
 import type { meRequest, meResponse } from "../types/api"
 import { MODULE_ROUTES } from "../routes/modules"
 import clsx from "clsx"
+import useToast from "../hooks/useToast"
 
 export default function Header() {
   const { hasSidebar, setActiveSidebar, activeSidebar } = useSidebar()
@@ -63,6 +64,8 @@ function Profile() {
   const { request } = useApi()
   const navigate = useNavigate()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const { addToast } = useToast()
   
   const logoutHandler = () => {
     request(authService.logout())
@@ -71,7 +74,7 @@ function Profile() {
         refresh()
       })
       .catch(err => {
-        alert("Error al cerrar sesión")
+        addToast("Error al cerrar sesión", "error")
         console.error(err)
       })
   }
@@ -94,7 +97,7 @@ function Profile() {
             noFocusRing
             variant="ghost"
             className="w-full flex flex-row gap-2 hover:bg-bg/90 text-red-500"
-            onClick={logoutHandler}
+            onClick={() => setIsDialogOpen(true)}
           >
             <LogOut />
             Cerrar sesión
@@ -111,41 +114,46 @@ function Profile() {
       >
         <ProfileForm
           user={user!}
-          refresh={refresh}
           onDone={() => setIsModalOpen(false)}
         />
       </Modal>
+      <Dialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        title="Cerrar sesión"
+        onConfirm={logoutHandler}
+      >
+        ¿Estás seguro de que deseas cerrar sesión?
+      </Dialog>
     </>
   )
 }
 
 type ProfileFormProps = {
   user: meResponse
-  refresh: () => Promise<void>
   onDone: () => void
 }
 function ProfileForm({
   user,
-  refresh,
   onDone
 }: ProfileFormProps) {
   const { request, isLoading } = useApi()
+  const { addToast } = useToast()
 
   const submitHandler = (data: meRequest) => {
     const validation = validateData(data)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
     request(authService.upd(data))
     .then(() => {
-      alert("Perfil actualizado correctamente")
-      refresh()
+      addToast("Perfil actualizado correctamente", "success")
       onDone()
     })
     .catch(err => {
-      alert("Error al actualizar el perfil")
+      addToast("Error al actualizar el perfil", "error")
       console.error(err)
     })
   }
@@ -198,9 +206,15 @@ function ProfileForm({
           type="password"
         />
       </div>
-      <Button type="submit" disabled={isLoading}>
-        Guardar cambios
-      </Button>
+      <div className="flex justify-center">
+        <Button
+          className="px-6"
+          type="submit"
+          disabled={isLoading}
+        >
+          Guardar cambios
+        </Button>
+      </div>
     </Form>
   )
 }

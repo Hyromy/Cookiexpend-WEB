@@ -10,6 +10,7 @@ import useAuth from "../../hooks/useAuth"
 import { Card } from "../../components/Card"
 import { ThemeButton } from "../../components/Button"
 import { EMAIL_REGEX } from "../../constants/regex"
+import useToast from "../../hooks/useToast"
 
 type LoginData = {
   email: string
@@ -18,7 +19,7 @@ type LoginData = {
 
 const validate = (data: LoginData) => {
   if (!data.email || !data.password) {
-    return "All fields are required"
+    return "Todos los campos son obligatorios"
   }
 
   return "ok"
@@ -28,23 +29,26 @@ export default function Login() {
   const navigate = useNavigate()
   const { data, error, isLoading, request } = useApi<sessionResponse>()
   const { refresh } = useAuth()
+  const { addToast } = useToast()
 
   useEffect(() => {
     if (data && data.success) {
       refresh()
       navigate(PATHS.panel)
     } else if (data && !data.success) {
-      alert("Login failed: " + (data.message))
+      console.error(data.message)
+      addToast("No se pudo iniciar sesión. Por favor, verifica tus credenciales.", "warning")
     }
     if (error) {
-      alert("Login failed: " + error.message)
+      console.error(error.message)
+      addToast(parseErr(error.message), "error")
     }
   }, [data, error, navigate, refresh])
 
   const onSubmitHandler = (data: LoginData) => {
     const validationResult = validate(data)
     if (validationResult != "ok") {
-      alert(validationResult)
+      addToast(validationResult, "warning")
       return
     }
 
@@ -110,4 +114,14 @@ function Bottom() {
       </a>
     </div>
   )
+}
+
+const parseErr = (err: string): string => {
+  switch (err) {
+    case "Invalid credentials":
+      return "Usuario o contraseña incorrectos"
+
+    default:
+      return "Ocurrió un error al iniciar sesión. Por favor, intenta de nuevo."
+  }
 }

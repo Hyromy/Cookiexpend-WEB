@@ -17,6 +17,8 @@ vi.mock("lucide-react", () => ({
   Sun: () => <span data-testid="sun-icon" />,
   Moon: () => <span data-testid="moon-icon" />,
   X: () => <span data-testid="close-icon" />,
+  Eye: () => <span data-testid="eye-icon" />,
+  EyeOff: () => <span data-testid="eye-off-icon" />,
 }))
 
 const useThemeMock = vi.mocked(useTheme)

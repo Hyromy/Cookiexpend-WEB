@@ -12,6 +12,7 @@ import { Dialog, Modal } from "../../components/Modal"
 import useAuth from "../../hooks/useAuth"
 import Dropdown from "../../components/Dropdown"
 import { clsx } from "clsx"
+import useToast from "../../hooks/useToast"
 
 const DELIVERY_EVENTS = ["delivery"] as eventModel[]
 const STORE_FACTORY_EVENTS = ["store", "factory"] as eventModel[]
@@ -244,12 +245,25 @@ type DeliveryFormProps = {
 function DeliveryForm({ delivery, onDone }: DeliveryFormProps) {
   const { isLoading, request, setData } = useApi<deliveryResponse>()
   const [packages, setPackages] = useState<Record<number, number>>({})
+  const { addToast } = useToast()
 
   useEffect(() => {
     if (delivery) { 
       setData(delivery)
     }
   }, [delivery, setData])
+
+  const onSubmitErrorHandler = (err: ApiRequestError) => {
+    const errData: Record<string, string[]> = err.data as Record<string, string[]>
+    const thisIncludes = (str: string) => (i: string) => i.includes(str)
+    
+    if (errData?.factory?.find(thisIncludes("field is required"))) {
+      addToast("No se pudo determinar la planta de origen. Por favor, inténtelo más tarde.", "error")
+      return
+    }
+  
+    addToast("Error al guardar el reparto, por favor intente más tarde", "error")
+  }
 
   const parseData = (data: deliveryRequest) => {
     for (const key in data) {
@@ -265,7 +279,7 @@ function DeliveryForm({ delivery, onDone }: DeliveryFormProps) {
     parseData(data)
     const validation = validateSubmit(data)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
@@ -274,7 +288,7 @@ function DeliveryForm({ delivery, onDone }: DeliveryFormProps) {
       : request(deliveryService.new(data))
     
     ).then(() => {
-      alert("Reparto creado con exito!")
+      addToast(`Reparto ${delivery ? "actualizado" : "creado"} con éxito`, "success")
       onDone?.()
 
     }).catch(err => onSubmitErrorHandler(err))
@@ -415,21 +429,25 @@ function ThisDialog({
   onDone
 }: ThisDialogProps) {
   const { isLoading, request } = useApi<void | deliveryResponse>()
+  const { addToast } = useToast()
 
   const errorHandler = (error: Error, msg: string) => {
     console.error(error)
-    alert(msg)
+    addToast(msg, "error")
   }
 
   const requestDelete = () => {
     request(deliveryService.del(delivery!.id))
-      .then(onDone)
+      .then(() => {
+        addToast("Reparto eliminado con éxito", "success")
+        onDone()
+      })
       .catch((error) => errorHandler(error, "Error al eliminar el reparto"))
   }
   const requestStatusChange = () => {
     request(deliveryService.changeStatus(delivery!.id, statusStep))
       .then(() => {
-        alert("Estado del reparto cambiado con exito!")
+        addToast("Estado del reparto cambiado con éxito!", "success")
         onDone()
       })
       .catch((error) => errorHandler(error, "Error al cambiar el estado del reparto"))
@@ -446,7 +464,8 @@ function ThisDialog({
       blockMissClick
       onConfirm={() => {
         if (!delivery) {
-          return alert("Error: No se encontró el reparto")
+          addToast("No se encontró el reparto para eliminar", "error")
+          return
         }
         if (isDelete) requestDelete()
         else requestStatusChange()
@@ -543,16 +562,3 @@ const validateSubmit = (data: deliveryRequest): string | true => {
 
   return true
 }
-
-const onSubmitErrorHandler = (err: ApiRequestError) => {
-  const errData: Record<string, string[]> = err.data as Record<string, string[]>
-  const thisIncludes = (str: string) => (i: string) => i.includes(str)
-
-  if (errData?.factory?.find(thisIncludes("field is required"))) {
-    alert("No se pudo determinar la planta de origen. Por favor, inténtelo más tarde.")
-    return
-  }
-
-  alert("Ocurrió un error inesperado al crear el reparto. Por favor, inténtelo más tarde.")
-}
-

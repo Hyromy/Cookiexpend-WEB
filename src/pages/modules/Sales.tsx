@@ -16,6 +16,7 @@ import { API_URL } from "../../constants/config"
 import { Ticket } from "../../components/Ticket"
 import { useReactToPrint } from "react-to-print"
 import Dropdown from "../../components/Dropdown"
+import useToast from "../../hooks/useToast"
 
 const SALE_EVENTS = ["sell"] as eventModel[]
 
@@ -246,6 +247,7 @@ function SalesForm({
   const [quantities, setQuantities] = useState<Record<number, number>>({})
   const { data, request } = useApi<inventoryResponse[]>()
   const { isLoading: pushLoading, request: pushRequest } = useApi<saleResponse>()
+  const { addToast } = useToast()
 
   useEffect(() => { request(inventoryService.get()) }, [request])
 
@@ -273,19 +275,19 @@ function SalesForm({
     const parsedData = parseData(data)
     const validation = validateData(parsedData)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
     pushRequest(saleService.new(parsedData))
     .then(() => {
-      alert("Venta registrada exitosamente")
+      addToast("Venta registrada exitosamente", "success")
       clearForm()
       onDone()
     })
     .catch((error) => {
       console.error(error)
-      alert("Ocurrió un error al registrar la venta. Por favor, intenta de nuevo.")
+      addToast("Ocurrió un error al registrar la venta. Por favor, intenta de nuevo.", "error")
     })
   }
 

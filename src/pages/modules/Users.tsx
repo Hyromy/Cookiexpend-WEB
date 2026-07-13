@@ -10,6 +10,7 @@ import { Form, SelectField, TextField, type SelectFieldProps } from "../../compo
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import useAuth from "../../hooks/useAuth"
 import { EMAIL_REGEX, USERNAME_REGEX } from "../../constants/regex"
+import useToast from "../../hooks/useToast"
 
 export default function Users() {
   const { data, error, isLoading, request, setData } = useApi<profileResponse[]>()
@@ -135,14 +136,45 @@ function UserForm({
   ]
 
   const { isLoading, request, setData } = useApi()
-  const [currentRole, setCurrentRole] = useState<userRoleName | "">(options[0].value as userRoleName | "")
+  const [currentRole, setCurrentRole] = useState<userRoleName | "">(
+    profile?.role || (options[0].value as userRoleName | "")
+  )
+  const { addToast } = useToast()
 
-  useEffect(() => { if (profile) setData(profile) }, [profile, setData])
+  useEffect(() => { 
+    if (profile) {
+      setData(profile)
+      setCurrentRole(profile.role)
+    }
+  }, [profile, setData])
+
+  const onSubmitErrorHandler = (err: ApiRequestError, action: "crear" | "actualizar") => {
+    const errData: Record<string, string> = err.data as Record<string, string>
+
+    if (errData?.username?.includes("is required")) {
+      addToast("El nombre de usuario es requerido", "warning")
+      return
+    }
+    if (errData?.username?.includes("already in use")) {
+      addToast("El nombre de usuario ya está en uso", "warning")
+      return
+    }
+    if (errData?.email?.includes("is required")) {
+      addToast("El correo electrónico es requerido", "warning")
+      return
+    }
+    if (errData?.email?.includes("already in use")) {
+      addToast("El correo electrónico ya está en uso", "warning")
+      return
+    }
+
+    addToast(`Ocurrió un error inesperado al ${action} el usuario. Por favor, inténtelo más tarde.`, "error")
+  }
 
   const onSubmitHandler = (data: profileRequest) => {
     const validation = validateSubmit(data)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
@@ -151,7 +183,7 @@ function UserForm({
       : request(profileService.new(data))
     
     ).then(() => {
-      alert("Perfil " + (profile ? "actualizado" : "creado") + " exitosamente")
+      addToast("Usuario " + (profile ? "actualizado" : "creado") + " exitosamente", "success")
       onDone?.()
     
     }).catch(err => onSubmitErrorHandler(err, profile ? "actualizar" : "crear"))
@@ -237,9 +269,9 @@ function EstablishmentSelect({
     return thisData
   }, [data, role])
 
-  return !isLoading && (
+  return (
     <SelectField
-      disabled={!role}
+      disabled={!role || isLoading}
       required
       label="Establecimiento"
       name="establishment"
@@ -262,30 +294,32 @@ function DeleteDialog({
   setProfile,
 }: DeleteDialogProps) {
   const { isLoading, request } = useApi()
-  
+  const { addToast } = useToast()
+
   const requestDelete = () => {
     if (!profile) return
     request(profileService.del(profile.id))
       .then(() => {
         setProfile(null)
         setIsOpen(false)
+        addToast("Usuario eliminado exitosamente", "success")
       })
       .catch((error) => {
         console.error(error)
-        alert("Error al eliminar el perfil")
+        addToast("Error al eliminar el usuario", "error")
       })
   }
   
   return (
     <Dialog
-      title="Eliminar perfil"
+      title="Eliminar usuario"
       isOpen={isOpen}
       onClose={() => setIsOpen(false)}
       loading={isLoading}
       blockMissClick
       onConfirm={requestDelete}
     >
-      ¿Estás seguro que deseas eliminar el perfil "{profile?.user.username}"?
+      ¿Estás seguro que deseas eliminar el usuario "{profile?.user.username}"?
     </Dialog>
   )
 }
@@ -298,27 +332,4 @@ const validateSubmit = (data: profileRequest): string | true => {
   if (!data.establishment) return "El establecimiento es requerido"
   
   return true
-}
-
-const onSubmitErrorHandler = (err: ApiRequestError, action: "crear" | "actualizar") => {
-  const errData: Record<string, string> = err.data as Record<string, string>
-
-  if (errData?.username?.includes("is required")) {
-    alert("El nombre de usuario es requerido")
-    return
-  }
-  if (errData?.username?.includes("already in use")) {
-    alert("El nombre de usuario ya está en uso")
-    return
-  }
-  if (errData?.email?.includes("is required")) {
-    alert("El correo electrónico es requerido")
-    return
-  }
-  if (errData?.email?.includes("already in use")) {
-    alert("El correo electrónico ya está en uso")
-    return
-  }
-
-  alert(`Ocurrió un error inesperado al ${action} el usuario. Por favor, inténtelo más tarde.`)
 }

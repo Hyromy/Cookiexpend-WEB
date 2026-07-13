@@ -9,6 +9,7 @@ import { Form, TextField } from "../../components/Form"
 import { Table } from "../../components/Table"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
+import useToast from "../../hooks/useToast"
 
 const FACTORY_EVENTS = ["factory"] as eventModel[]
 const ESTABLISHMENT_EVENTS = ["establishment"] as eventModel[]
@@ -134,14 +135,27 @@ type FactoryFormProps = {
 }
 function FactoryForm({ factory, onDone }: FactoryFormProps) {
   const { isLoading, request, setData } = useApi<establishmentRequest>()
+  const { addToast } = useToast()
 
   useEffect(() => { if (factory) setData(factory.establishment) }, [factory, setData])
+
+  const submitErrorHandler = (err: ApiRequestError) => {
+    const errData = err.data as Record<string, Record<string, string[]>>
+    const thisIncludes = (str: string) => (i: string) => i.includes(str)
+
+    if (errData?.establishment?.name?.find(thisIncludes("already exists"))) {
+      addToast("Ya existe una planta o expendio con ese nombre", "warning")
+      return
+    }
+
+    addToast("Error al guardar la planta, por favor intente más tarde", "error")
+  }
 
   const onSubmitHandler = (data: establishmentRequest) => {
     clearData(data)
     const validation = validate(data)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
@@ -150,7 +164,7 @@ function FactoryForm({ factory, onDone }: FactoryFormProps) {
       : request(factoryService.new({ establishment: data }))
     
     ).then(() => {
-      alert("Planta creada con éxito!")
+      addToast(`Planta ${factory ? "actualizada" : "creada"} con éxito`, "success")
       onDone?.()
 
     }).catch(err => submitErrorHandler(err))
@@ -234,6 +248,7 @@ function DeleteDialog({
   setFactory
 } : DeleteDialogProps) {
   const { isLoading, request } = useApi()
+  const { addToast } = useToast()
 
   const requestDelete = () => {
     if (!factory) return
@@ -241,10 +256,11 @@ function DeleteDialog({
       .then(() => {
         setFactory(null)
         setIsOpen(false)
+        addToast("Planta eliminada con éxito", "success")
       })
       .catch(err => {
         console.error(err)
-        alert("Error al eliminar la planta")
+        addToast("Error al eliminar la planta", "error")
       })
   }
 
@@ -299,16 +315,4 @@ const validate = (data: establishmentRequest): string | true => {
   }
 
   return true
-}
-
-const submitErrorHandler = (err: ApiRequestError) => {
-  if (
-    (err.data as Record<string, Record<string, string[]>>)
-    ?.establishment?.name?.find((i: string) => i.includes("already exists"))
-  ) {
-    alert("Ya existe una planta o expendio con ese nombre")
-    return
-  }
-
-  alert("Error al guardar la planta, por favor intente más tarde")
 }

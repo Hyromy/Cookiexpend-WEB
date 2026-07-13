@@ -9,6 +9,7 @@ import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
 import type { eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
+import useToast from "../../hooks/useToast"
 
 const PRODUCT_EVENTS = ["product"] as eventModel[]
 
@@ -162,14 +163,39 @@ type ProductFormProps = {
 }
 function ProductForm({ product, onDone }: ProductFormProps) {
   const { isLoading, request, setData } = useApi()
+  const { addToast } = useToast()
 
   useEffect(() => { if (product) setData(product) }, [product, setData])
+
+  const submitErrorHandler = (err: ApiRequestError) => {
+    const errData: Record<string, string[]> = err.data as Record<string, string[]>
+    const thisIncludes = (str: string) => (i: string) => i.includes(str)
+
+    if (errData?.sku?.find(thisIncludes("already exists"))) {
+      addToast("Ya existe un producto con el mismo SKU, por favor ingrese uno diferente", "warning")
+      return
+    }
+    if (errData?.name?.find(thisIncludes("already exists"))) {
+      addToast("Ya existe un producto con el mismo nombre, por favor ingrese uno diferente", "warning")
+      return
+    }
+    if (errData?.price?.find(thisIncludes("no more than"))) {
+      addToast("El precio no puede ser mayor a 9999.99", "warning")
+      return
+    }
+    if (errData?.img?.find(thisIncludes("valid image"))) {
+      addToast("Por favor, seleccione una imagen válida", "warning")
+      return
+    }
+
+    addToast("Error al guardar el producto, por favor intente más tarde", "error")
+  }
 
   const onSubmitHandler = (data: productRequest) => {
     clearData(data)
     const validation = validate(data)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
@@ -178,7 +204,7 @@ function ProductForm({ product, onDone }: ProductFormProps) {
       : request(productService.new(data))
 
     ).then(() => {
-      alert("Producto creado con exito!")
+      addToast(`Producto ${product ? "actualizado" : "creado"} con éxito`, "success")
       onDone?.()
 
     }).catch((error) => submitErrorHandler(error))
@@ -248,6 +274,7 @@ function DeleteDialog({
   setProduct
 } : DeleteDialogProps) {
   const { isLoading, request } = useApi()
+  const { addToast } = useToast()
 
   const requestDelete = () => {
     if (!product) return
@@ -255,10 +282,11 @@ function DeleteDialog({
       .then(() => {
         setProduct(null)
         setIsOpen(false)
+        addToast("Producto eliminado con éxito", "success")
       })
       .catch((error) => {
         console.error(error)
-        alert("Error al eliminar el producto")
+        addToast("Error al eliminar el producto", "error")
       })
   }
 
@@ -298,28 +326,4 @@ const validate = (data: productRequest): string | true => {
   }
 
   return true
-}
-
-const submitErrorHandler = (err: ApiRequestError) => {
-  const errData: Record<string, string[]> = err.data as Record<string, string[]>
-  const thisIncludes = (str: string) => (i: string) => i.includes(str)
-
-  if (errData?.sku?.find(thisIncludes("already exists"))) {
-    alert("Ya existe un producto con el mismo SKU, por favor ingrese uno diferente")
-    return
-  }
-  if (errData?.name?.find(thisIncludes("already exists"))) {
-    alert("Ya existe un producto con el mismo nombre, por favor ingrese uno diferente")
-    return
-  }
-  if (errData?.price?.find(thisIncludes("no more than"))) {
-    alert("El precio no puede ser mayor a 9999.99")
-    return
-  }
-  if (errData?.img?.find(thisIncludes("valid image"))) {
-    alert("Por favor, seleccione una imagen válida")
-    return
-  }
-
-  alert("Error al guardar el producto, por favor intente más tarde")
 }

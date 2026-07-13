@@ -9,6 +9,7 @@ import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
+import useToast from "../../hooks/useToast"
 
 const STORE_EVENTS = ["store"] as eventModel[]
 const ESTABLISHMENT_EVENTS = ["establishment"] as eventModel[]
@@ -134,14 +135,27 @@ type StoreFormProps = {
 }
 function StoreForm({ store, onDone }: StoreFormProps) {
   const { isLoading, request, setData } = useApi<storeResponse>()
+  const { addToast } = useToast()
 
   useEffect(() => { if (store) setData(store) }, [store, setData])
+
+  const submitErrorHandler = (err: ApiRequestError) => {
+    const errData = err.data as Record<string, Record<string, string[]>>
+    const thisIncludes = (str: string) => (i: string) => i.includes(str)
+    
+    if (errData?.establishment?.name?.find(thisIncludes("already exists"))) {
+      addToast("Ya existe una planta o expendio con ese nombre", "warning")
+      return
+    }
+  
+    addToast("Error al guardar el expendio, por favor intente más tarde", "error")
+  }
 
   const onSubmitHandler = (data: establishmentRequest) => {
     clearData(data)
     const validation = validate(data)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
@@ -150,7 +164,7 @@ function StoreForm({ store, onDone }: StoreFormProps) {
       : request(storeService.new({ establishment: data }))
     
     ).then(() => {
-      alert("Expendio creado con exito!")
+      addToast(`Expendio ${store ? "actualizado" : "creado"} con éxito`, "success")
       onDone?.()
 
     }).catch((error) => submitErrorHandler(error))
@@ -234,6 +248,7 @@ function DeleteDialog({
   setStore
 }: DeleteDialogProps) {
   const { isLoading, request } = useApi()
+  const { addToast } = useToast()
 
   const requestDelete = () => {
     if (!store) return
@@ -241,10 +256,11 @@ function DeleteDialog({
       .then(() => {
         setStore(null)
         setIsOpen(false)
+        addToast("Expendio eliminado con éxito", "success")
       })
       .catch((error) => {
         console.error(error)
-        alert("Error al eliminar el expendio")
+        addToast("Error al eliminar el expendio", "error")
       })
   }
 
@@ -299,16 +315,4 @@ const validate = (data: establishmentRequest): string | true => {
   }
 
   return true
-}
-
-const submitErrorHandler = (err: ApiRequestError) => {
-  if (
-    (err.data as Record<string, Record<string, string[]>>)
-    ?.establishment?.name?.find((i: string) => i.includes("already exists"))
-  ) {
-    alert("Ya existe una planta o expendio con ese nombre")
-    return
-  }
-
-  alert("Error al guardar el expendio, por favor intente más tarde")
 }

@@ -256,7 +256,7 @@ describe("useEvent.tsx", () => {
       const { unmount } = renderHook(() => useEvent({ cb }))
 
       const instance = FakeEventSource.instances[0]
-      expect(instance.url).toContain("api/events/")
+      expect(instance.url).toContain("api/store-mgmt/events/")
       expect(instance.options?.withCredentials).toBe(true)
 
       unmount()

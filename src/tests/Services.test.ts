@@ -172,7 +172,7 @@ describe("cookiexpend.ts", () => {
     it("calls health check", async () => {
       mockClient.get.mockResolvedValueOnce({ data: { healthy: true } })
       await healthService.check()
-      expect(mockClient.get).toHaveBeenCalledWith("api/health/", expect.any(Object))
+      expect(mockClient.get).toHaveBeenCalledWith("api/store-mgmt/health/", expect.any(Object))
     })
 
     it("calls auth login", async () => {
@@ -197,13 +197,13 @@ describe("cookiexpend.ts", () => {
     it("calls products list", async () => {
       mockClient.get.mockResolvedValueOnce({ data: [] })
       await productService.get()
-      expect(mockClient.get).toHaveBeenCalledWith("api/products/", expect.any(Object))
+      expect(mockClient.get).toHaveBeenCalledWith("api/store-mgmt/products/", expect.any(Object))
     })
 
     it("calls product by id", async () => {
       mockClient.get.mockResolvedValueOnce({ data: {} })
       await productService.get(12)
-      expect(mockClient.get).toHaveBeenCalledWith("api/products/12/", expect.any(Object))
+      expect(mockClient.get).toHaveBeenCalledWith("api/store-mgmt/products/12/", expect.any(Object))
     })
 
     it("creates product", async () => {
@@ -211,7 +211,7 @@ describe("cookiexpend.ts", () => {
       mockClient.post.mockResolvedValueOnce({ data: {} })
       await productService.new(payload)
       expect(mockClient.post).toHaveBeenCalledWith(
-        "api/products/",
+        "api/store-mgmt/products/",
         expect.any(FormData),
         expect.any(Object)
       )
@@ -222,7 +222,7 @@ describe("cookiexpend.ts", () => {
       mockClient.patch.mockResolvedValueOnce({ data: {} })
       await productService.upd(7, payload)
       expect(mockClient.patch).toHaveBeenCalledWith(
-        "api/products/7/",
+        "api/store-mgmt/products/7/",
         expect.any(FormData),
         expect.any(Object)
       )
@@ -231,7 +231,7 @@ describe("cookiexpend.ts", () => {
     it("deletes product", async () => {
       mockClient.delete.mockResolvedValueOnce({ data: {} })
       await productService.del(7)
-      expect(mockClient.delete).toHaveBeenCalledWith("api/products/7/", expect.any(Object))
+      expect(mockClient.delete).toHaveBeenCalledWith("api/store-mgmt/products/7/", expect.any(Object))
     })
   })
 })
