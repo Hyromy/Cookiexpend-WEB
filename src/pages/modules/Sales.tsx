@@ -54,9 +54,7 @@ export default function Sales() {
       Registrar Nueva Venta
     </Button>
   )
-  const showBtnSale = useMemo(() => {
-    if (user?.role == "Store manager") return btnSale
-  }, [user?.role, btnSale])
+  const showBtnSale = user?.role == "Factory manager" && btnSale
 
   return (
     <>

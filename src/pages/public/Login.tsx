@@ -43,7 +43,7 @@ export default function Login() {
       console.error(error.message)
       addToast(parseErr(error.message), "error")
     }
-  }, [data, error, navigate, refresh])
+  }, [data, error, navigate, refresh, addToast])
 
   const onSubmitHandler = (data: LoginData) => {
     const validationResult = validate(data)

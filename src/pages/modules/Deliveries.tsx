@@ -132,6 +132,7 @@ export default function Deliveries() {
       Agregar Reparto
     </Button>
   )
+  const showBtnAdd = user?.role == "Factory manager" && btnAdd
 
   const filteredData = useMemo(() => {
     if (!data) return null
@@ -145,10 +146,6 @@ export default function Deliveries() {
       ] as statusName[]).includes(d.status.name)
     )
   }, [data, user?.role])
-
-  const showBtnAdd = useMemo(() => {
-    if (user?.role == "Factory manager") return btnAdd
-  }, [user?.role, btnAdd])
 
   return (
     <>

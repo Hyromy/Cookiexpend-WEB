@@ -61,18 +61,22 @@ export function Modal({
   const [animate, setAnimate] = useState(false)
 
   useEffect(() => {
+    let timer: number
+
     if (isOpen) {
       document.body.style.overflow = "hidden"
-      setShouldRender(true)
-      const timer = setTimeout(() => setAnimate(true), 10)
-      return () => clearTimeout(timer)
+      queueMicrotask(() => setShouldRender(true))
+      timer = setTimeout(() => setAnimate(true), 10)
     } else {
-      setAnimate(false)
-      const timer = setTimeout(() => {
+      queueMicrotask(() => setAnimate(false))
+      timer = setTimeout(() => {
         setShouldRender(false)
         document.body.style.overflow = "unset"
       }, 300)
-      return () => clearTimeout(timer)
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer)
     }
   }, [isOpen])
 

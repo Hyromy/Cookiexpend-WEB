@@ -21,15 +21,17 @@ export default function Dropdown({
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    let timer: number
+
     if (isOpen) {
-      setShouldRender(true)
-      const timer = setTimeout(() => setAnimate(true), 10)
-      return () => clearTimeout(timer)
+      queueMicrotask(() => setShouldRender(true))
+      timer = setTimeout(() => setAnimate(true), 10)
     } else {
-      setAnimate(false)
-      const timer = setTimeout(() => setShouldRender(false), 300)
-      return () => clearTimeout(timer)
+      queueMicrotask(() => setAnimate(false))
+      timer = setTimeout(() => setShouldRender(false), 300)
     }
+
+    return () => clearTimeout(timer)
   }, [isOpen])
 
   useEffect(() => {

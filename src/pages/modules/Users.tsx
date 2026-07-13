@@ -139,14 +139,14 @@ function UserForm({
   const [currentRole, setCurrentRole] = useState<userRoleName | "">(
     profile?.role || (options[0].value as userRoleName | "")
   )
+  const [prevProfileId, setPrevProfileId] = useState<number | undefined>(profile?.id)
   const { addToast } = useToast()
 
-  useEffect(() => { 
-    if (profile) {
-      setData(profile)
-      setCurrentRole(profile.role)
-    }
-  }, [profile, setData])
+  if (profile?.id != prevProfileId) {
+    setPrevProfileId(profile?.id)
+    setCurrentRole(profile?.role || "")
+    setData(profile)
+  }
 
   const onSubmitErrorHandler = (err: ApiRequestError, action: "crear" | "actualizar") => {
     const errData: Record<string, string> = err.data as Record<string, string>

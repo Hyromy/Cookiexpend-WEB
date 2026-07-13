@@ -17,7 +17,7 @@ const ICONS: Record<ToastType, React.ReactNode> = {
   warning: <AlertTriangle className="text-warning" />,
 }
 
-interface ToastItemProps {
+type ToastItemProps = {
   toast: Toast
   onClose: (id: string) => void
 }
@@ -41,13 +41,12 @@ export function ToastItem({ toast, onClose }: ToastItemProps) {
   }, [toast.id, onClose])
 
   useEffect(() => {
-    const duration = toast.duration
     const autoCloseTimer = setTimeout(() => {
       handleClose()
-    }, duration)
+    }, toast.duration)
 
     return () => clearTimeout(autoCloseTimer)
-  }, [handleClose])
+  }, [handleClose, toast.duration])
 
   return (
     <div
