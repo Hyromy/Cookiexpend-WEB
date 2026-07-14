@@ -1,8 +1,9 @@
 import { X } from "lucide-react"
-import { useEffect, type ReactNode} from "react"
+import { useEffect, type ReactNode, useState } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "./Button"
 import clsx from "clsx"
+import { MessageCircleWarning } from "lucide-react"
 
 type modalSizes = "sm" | "md" | "lg" | "xl" | "xxl"
 
@@ -18,7 +19,7 @@ type ModalProps = {
   children: ReactNode
   isOpen: boolean
   onClose: () => void
-  title?: string
+  title?: ReactNode
   blockMissClick?: boolean
   size?: modalSizes
 }
@@ -56,34 +57,69 @@ export function Modal({
   blockMissClick,
   size = "lg",
 }: ModalProps) {
-  useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden"
-    else document.body.style.overflow = "unset"
+  const [shouldRender, setShouldRender] = useState(false)
+  const [animate, setAnimate] = useState(false)
 
-    return () => { document.body.style.overflow = "unset" }
+  useEffect(() => {
+    let timer: number
+
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+      queueMicrotask(() => setShouldRender(true))
+      timer = setTimeout(() => setAnimate(true), 10)
+    } else {
+      queueMicrotask(() => setAnimate(false))
+      timer = setTimeout(() => {
+        setShouldRender(false)
+        document.body.style.overflow = "unset"
+      }, 300)
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
   }, [isOpen])
 
-  if (!isOpen) return null
+  useEffect(() => {
+    return () => { document.body.style.overflow = "unset" }
+  }, [])
 
-  return createPortal (
+  if (!shouldRender) return null
+
+  return createPortal(
     <div className="fixed inset-0 z-100 flex items-center justify-center w-full h-full p-4">
       <div
-        className="fixed inset-0 bg-black/25 backdrop-blur-xs"
+        className={clsx(
+          "fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-200 ease-in-out",
+          animate ? "opacity-100" : "opacity-0"
+        )}
         onClick={() => { if (!blockMissClick) onClose() }}
       />
+
       <div className={clsx(
         "relative bg-card rounded-xl shadow-2xl overflow-auto border border-muted w-full max-h-full",
+        "transition-all duration-200 ease-out transform-gpu",
         SIZES[size],
+        animate 
+          ? "opacity-100 scale-100 translate-y-0"
+          : "opacity-0 scale-95 translate-y-4"
       )}>
         <div className="flex items-center justify-between p-4 border-b border-muted">
           {title && (
             <h3 className="text-xl font-bold text-fg">
-              {title}
+              {blockMissClick
+                ? (
+                  <div className="flex items-center gap-2">
+                    <MessageCircleWarning className="text-primary" />
+                    {title}
+                  </div>
+                ) : title
+              }
             </h3>
           )}
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-muted/50 transition-colors"
+            className="p-2 rounded-full hover:bg-muted/50 transition-colors text-muted-foreground hover:text-fg"
           >
             <X className="w-6 h-6" />
           </button>
@@ -158,14 +194,17 @@ export function Dialog({
       </div>
       <div className="mt-6 flex justify-end gap-4">
         <Button
+          variant="secondary"
           onClick={onCancel ?? onClose}
           disabled={loading}
+          className="px-6"
         >
           {cancelText}
         </Button>
         <Button
           onClick={onConfirm}
           disabled={loading}
+          className="px-6"
         >
           {confirmText}
         </Button>

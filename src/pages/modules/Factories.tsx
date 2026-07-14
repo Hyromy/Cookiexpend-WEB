@@ -3,17 +3,24 @@ import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { factoryService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
-import type { establishmentRequest, establishmentResponse, factoryResponse } from "../../types/api"
-import { Button } from "../../components/Button"
+import type { ApiRequestError, establishmentRequest, establishmentResponse, factoryResponse } from "../../types/api"
+import { ActionButton, Button } from "../../components/Button"
 import { Form, TextField } from "../../components/Form"
 import { Table } from "../../components/Table"
-import { Pencil, Trash } from "lucide-react"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
+import useToast from "../../hooks/useToast"
 
 const FACTORY_EVENTS = ["factory"] as eventModel[]
 const ESTABLISHMENT_EVENTS = ["establishment"] as eventModel[]
 const ON_EDITABLE_EVENTS = ["updated", "deleted"] as eventAction[]
+
+const FACTORY_REQUIRED_ARGS = [
+  "name",
+  "municipality",
+  "neighborhood",
+  "street",
+] as (keyof establishmentRequest)[]
 
 export default function Factories() {
   const { data, error, isLoading, request, setData } = useApi<factoryResponse[]>()
@@ -47,7 +54,14 @@ export default function Factories() {
     setIsDialogOpen(true)
   }
 
-  const btnAdd = <Button onClick={openCreate}>Agregar Planta</Button>
+  const btnAdd = (
+    <Button
+      onClick={openCreate}
+      className="px-6"
+    >
+      Agregar Planta
+    </Button>
+  )
 
   return (
     <>
@@ -58,7 +72,9 @@ export default function Factories() {
         emptyProps={{ title: "Plantas", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {btnAdd}
+        <div className="mb-2">
+          {btnAdd}
+        </div>
         <Table
           data={data!}
           exportToExcel
@@ -73,10 +89,18 @@ export default function Factories() {
               id: "actions",
               header: "Acciones",
               cell: ({ row }) => (
-                <>
-                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
-                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
-                </>
+                <div className="flex gap-2">
+                  <ActionButton
+                    variant="warning"
+                    icon="pencil"
+                    cb={() => openEdit(row.original)}
+                  />
+                  <ActionButton
+                    variant="danger"
+                    icon="trash"
+                    cb={() => openDelete(row.original)}
+                  />
+                </div>
               )
             }
           ]}
@@ -111,60 +135,102 @@ type FactoryFormProps = {
 }
 function FactoryForm({ factory, onDone }: FactoryFormProps) {
   const { isLoading, request, setData } = useApi<establishmentRequest>()
+  const { addToast } = useToast()
 
   useEffect(() => { if (factory) setData(factory.establishment) }, [factory, setData])
 
-  const onSubmitHandler = (data: establishmentRequest) => {
-    if (Object.values(data).some(v => !v)) {
-      alert("Por favor llena todos los campos antes de registrar")
+  const submitErrorHandler = (err: ApiRequestError) => {
+    const errData = err.data as Record<string, Record<string, string[]>>
+    const thisIncludes = (str: string) => (i: string) => i.includes(str)
+
+    if (errData?.establishment?.name?.find(thisIncludes("already exists"))) {
+      addToast("Ya existe una planta o expendio con ese nombre", "warning")
       return
     }
-    
+
+    addToast("Error al guardar la planta, por favor intente más tarde", "error")
+  }
+
+  const onSubmitHandler = (data: establishmentRequest) => {
+    clearData(data)
+    const validation = validate(data)
+    if (validation != true) {
+      addToast(validation, "warning")
+      return
+    }
+
     (factory
       ? request(factoryService.upd(factory.id, { establishment: data }))
       : request(factoryService.new({ establishment: data }))
     
-    ).then((response) => {
-      if (!response) return
-      alert("Planta creada con exito!")
+    ).then(() => {
+      addToast(`Planta ${factory ? "actualizada" : "creada"} con éxito`, "success")
       onDone?.()
-    
-    }).catch((error) => {
-      console.error(error)
-      alert("Error al crear la planta")
-    })
+
+    }).catch(err => submitErrorHandler(err))
   }
+  
+  const dangerChars = /[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField
-        name="municipality"
-        placeholder="Municipio"
-        defaultValue={factory?.establishment.municipality}
-      />
-      <TextField
-        name="name"
-        placeholder="Nombre"
-        defaultValue={factory?.establishment.name}
-      />
-      <TextField
-        name="neighborhood"
-        placeholder="Colonia"
-        defaultValue={factory?.establishment.neighborhood}
-      />
-      <TextField
-        name="street"
-        placeholder="Calle"
-        defaultValue={factory?.establishment.street}
-      />
-      <TextField
-        name="number"
-        placeholder="Número"
-        defaultValue={factory?.establishment.number}
-      />
-      <Button type="submit" disabled={isLoading}>
-        Enviar
-      </Button>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="name"
+          label="Nombre"
+          defaultValue={factory?.establishment.name}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="municipality"
+          label="Municipio"
+          defaultValue={factory?.establishment.municipality}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="neighborhood"
+          label="Colonia"
+          defaultValue={factory?.establishment.neighborhood}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="street"
+          label="Calle"
+          defaultValue={factory?.establishment.street}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanRegex={/\D/}
+          name="number"
+          label="Número"
+          defaultValue={factory?.establishment.number}
+        />
+      </div>
+      <div className="flex justify-center">
+        <Button
+          className="px-6"
+          type="submit"
+          disabled={isLoading}
+        >
+          Guardar
+        </Button>
+      </div>
     </Form>
   )
 }
@@ -182,6 +248,7 @@ function DeleteDialog({
   setFactory
 } : DeleteDialogProps) {
   const { isLoading, request } = useApi()
+  const { addToast } = useToast()
 
   const requestDelete = () => {
     if (!factory) return
@@ -189,10 +256,11 @@ function DeleteDialog({
       .then(() => {
         setFactory(null)
         setIsOpen(false)
+        addToast("Planta eliminada con éxito", "success")
       })
-      .catch((error) => {
-        console.error(error)
-        alert("Error al eliminar la planta")
+      .catch(err => {
+        console.error(err)
+        addToast("Error al eliminar la planta", "error")
       })
   }
 
@@ -229,4 +297,22 @@ const establishmentEvents = (e: eventData, setData: Dispatch<SetStateAction<fact
         return prev.filter(f => f.establishment.id != data.id)
       })
   }
+}
+
+const clearData = (data: establishmentRequest) => {
+  FACTORY_REQUIRED_ARGS.forEach(key => {
+    if (data[key]) {
+      data[key] = data[key].trim().replace(/\s+/g, " ")
+    }
+  })
+
+  if (!data.number?.trim()) delete data.number
+}
+
+const validate = (data: establishmentRequest): string | true => {
+  if (FACTORY_REQUIRED_ARGS.some(k => !data[k])) {
+    return "Por favor, complete todos los campos obligatorios."
+  }
+
+  return true
 }

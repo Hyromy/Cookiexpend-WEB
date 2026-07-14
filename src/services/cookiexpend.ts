@@ -33,7 +33,7 @@ const buildFormData = (obj: Record<string, unknown>): FormData => {
 
 class HealthService {
   check(): Promise<{ healthy: true }> {
-    return api.get("api/health/")
+    return api.get("api/store-mgmt/health/")
   }
 }
 
@@ -55,10 +55,18 @@ class AuthService {
   upd(data: apiType.meRequest): Promise<apiType.meResponse> {
     return api.patch(this.endpoint + "update/", data)
   }
+
+  askResetPassword(data: apiType.askResetPasswordRequest): Promise<apiType.resetPasswordResponse> {
+    return api.post(this.endpoint + "reset/request/", data)
+  }
+
+  confirmResetPassword(data: apiType.confirmResetPasswordRequest): Promise<apiType.confirmResetPasswordResponse> {
+    return api.post(this.endpoint + "reset/confirm/", data)
+  }
 }
 
 class EstablishmentService {
-  readonly endpoint = "api/establishments/"
+  readonly endpoint = "api/store-mgmt/establishments/"
 
   get(id: string | number = ""): Promise<apiType.establishmentResponse | apiType.establishmentResponse[]> {
     return api.get(this.endpoint + param(id))
@@ -66,7 +74,7 @@ class EstablishmentService {
 }
 
 class FactoryService {
-  readonly endpoint = "api/factories/"
+  readonly endpoint = "api/store-mgmt/factories/"
 
   get(id: string | number = ""): Promise<apiType.factoryResponse | apiType.factoryResponse[]> {
     return api.get(this.endpoint + param(id))
@@ -86,7 +94,7 @@ class FactoryService {
 }
 
 class StoreService {
-  readonly endpoint = "api/stores/"
+  readonly endpoint = "api/store-mgmt/stores/"
 
   get(id: string | number = ""): Promise<apiType.storeResponse | apiType.storeResponse[]> {
     return api.get(this.endpoint + param(id))
@@ -106,7 +114,7 @@ class StoreService {
 }
 
 class ProductService {
-  readonly endpoint = "api/products/"
+  readonly endpoint = "api/store-mgmt/products/"
 
   get(id: string | number = ""): Promise<apiType.productResponse | apiType.productResponse[]> {
     return api.get(this.endpoint + param(id))
@@ -134,7 +142,7 @@ class ProductService {
 }
 
 class DeliveryService {
-  readonly endpoint = "api/deliveries/"
+  readonly endpoint = "api/store-mgmt/deliveries/"
 
   get(id: string | number = ""): Promise<apiType.deliveryResponse | apiType.deliveryResponse[]> {
     return api.get(this.endpoint + param(id))
@@ -160,7 +168,7 @@ class DeliveryService {
 }
 
 class InventoryService {
-  readonly endpoint = "api/inventories/"
+  readonly endpoint = "api/store-mgmt/inventories/"
 
   get(id: string | number = "", query?: apiType.inventoryRequest): Promise<apiType.inventoryResponse[]> {
     return api.get(this.endpoint + param(id) + args(query!))
@@ -168,7 +176,7 @@ class InventoryService {
 }
 
 class SaleService {
-  readonly endpoint = "api/sells/"
+  readonly endpoint = "api/store-mgmt/sells/"
 
   get(id: string | number = ""): Promise<apiType.saleResponse | apiType.saleResponse[]> {
     return api.get(this.endpoint + param(id))
@@ -180,7 +188,7 @@ class SaleService {
 }
 
 class ProfileService {
-  readonly endpoint = "api/profiles/"
+  readonly endpoint = "api/store-mgmt/profiles/"
 
   get(id: string | number = ""): Promise<unknown | unknown[]> {
     return api.get(this.endpoint + param(id))

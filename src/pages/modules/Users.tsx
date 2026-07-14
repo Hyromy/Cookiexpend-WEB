@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { establishmentService, profileService } from "../../services/cookiexpend"
 import { Table } from "../../components/Table"
-import { Button } from "../../components/Button"
-import { Pencil, Trash } from "lucide-react"
-import type { establishmentResponse, profileRequest, profileResponse, userRoleName } from "../../types/api"
+import { ActionButton, Button } from "../../components/Button"
+import type { ApiRequestError, establishmentResponse, profileRequest, profileResponse, userRoleName } from "../../types/api"
 import { Dialog, Modal } from "../../components/Modal"
-import { Form, SelectField, TextField } from "../../components/Form"
+import { Form, SelectField, TextField, type SelectFieldProps } from "../../components/Form"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import useAuth from "../../hooks/useAuth"
+import { EMAIL_REGEX, USERNAME_REGEX } from "../../constants/regex"
+import useToast from "../../hooks/useToast"
 
 export default function Users() {
   const { data, error, isLoading, request, setData } = useApi<profileResponse[]>()
@@ -26,6 +27,8 @@ export default function Users() {
     cb: useEventOnCUD<profileResponse>(setData)
   })
 
+  const profiles = useMemo(() => data?.filter(p => p.user.id != user?.id) || [], [data, user?.id])
+
   const openCreate = () => {
     setEditingProfile(null)
     setIsModalOpen(true)
@@ -39,23 +42,31 @@ export default function Users() {
     setIsDialogOpen(true)
   }
 
-  const btnAdd = <Button onClick={openCreate}>Agregar Usuario</Button>
+  const btnAdd = (
+    <Button
+      onClick={openCreate}
+      className="px-6"
+    >
+      Agregar Usuario
+    </Button>
+  )
 
   return (
     <>
       <StateGate
-        data={data}
+        data={profiles}
         error={error}
         loading={isLoading}
-        emptyProps={{ title: "Usuarios", content: "No deberías poder ver este mensaje" }}
+        emptyProps={{ title: "Usuarios", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {btnAdd}
+        <div className="mb-2">
+          {btnAdd}
+        </div>
         <Table
-          data={data!}
+          data={profiles}
           exportToExcel
           filename="Usuarios"
-          excludeFromView={row => row.user.id == user?.id}
           columns={[
             { accessorKey: "user.last_name", header: "Apellido" },
             { accessorKey: "user.first_name", header: "Nombre" },
@@ -70,10 +81,18 @@ export default function Users() {
               id: "actions",
               header: "Acciones",
               cell: ({ row }) => (
-                <>
-                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
-                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
-                </>
+                <div className="flex gap-2">
+                  <ActionButton
+                    variant="warning"
+                    icon="pencil"
+                    cb={() => openEdit(row.original)}
+                  />
+                  <ActionButton
+                    variant="danger"
+                    icon="trash"
+                    cb={() => openDelete(row.original)}
+                  />
+                </div>
               )
             }
           ]}
@@ -110,20 +129,52 @@ function UserForm({
   profile,
   onDone
 }: UserFormProps) {
-  const options: { value: userRoleName, label: string }[] = [
+  const options: SelectFieldProps["options"] = [
+    { value: "", label: "Seleccione un rol", disabled: true },
     { value: "store", label: "Responsable de expendio" },
     { value: "factory", label: "Responsable de planta" },
   ]
 
   const { isLoading, request, setData } = useApi()
-  const [currentRole, setCurrentRole] = useState<userRoleName>(options[0].value)
+  const [currentRole, setCurrentRole] = useState<userRoleName | "">(
+    profile?.role || (options[0].value as userRoleName | "")
+  )
+  const [prevProfileId, setPrevProfileId] = useState<number | undefined>(profile?.id)
+  const { addToast } = useToast()
 
-  useEffect(() => { if (profile) setData(profile) }, [profile, setData])
+  if (profile?.id != prevProfileId) {
+    setPrevProfileId(profile?.id)
+    setCurrentRole(profile?.role || "")
+    setData(profile)
+  }
+
+  const onSubmitErrorHandler = (err: ApiRequestError, action: "crear" | "actualizar") => {
+    const errData: Record<string, string> = err.data as Record<string, string>
+
+    if (errData?.username?.includes("is required")) {
+      addToast("El nombre de usuario es requerido", "warning")
+      return
+    }
+    if (errData?.username?.includes("already in use")) {
+      addToast("El nombre de usuario ya está en uso", "warning")
+      return
+    }
+    if (errData?.email?.includes("is required")) {
+      addToast("El correo electrónico es requerido", "warning")
+      return
+    }
+    if (errData?.email?.includes("already in use")) {
+      addToast("El correo electrónico ya está en uso", "warning")
+      return
+    }
+
+    addToast(`Ocurrió un error inesperado al ${action} el usuario. Por favor, inténtelo más tarde.`, "error")
+  }
 
   const onSubmitHandler = (data: profileRequest) => {
     const validation = validateSubmit(data)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
@@ -131,50 +182,61 @@ function UserForm({
       ? request(profileService.upd(profile.id, data))
       : request(profileService.new(data))
     
-    ).then((response) => {
-      console.warn("data sended, the default password is '0987654aA'")
-
-      if (!response) return
-      alert("Perfil " + (profile ? "actualizado" : "creado") + " exitosamente")
+    ).then(() => {
+      addToast("Usuario " + (profile ? "actualizado" : "creado") + " exitosamente", "success")
       onDone?.()
     
-    }).catch((error) => {
-      console.error(error)
-      alert("Error al " + (profile ? "actualizar" : "crear") + " el perfil")
-    })
+    }).catch(err => onSubmitErrorHandler(err, profile ? "actualizar" : "crear"))
   }
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField
-        name="username"
-        placeholder="Nombre de usuario"
-        defaultValue={profile?.user.username}
-      />
-      <TextField
-        name="email"
-        placeholder="Correo electrónico"
-        defaultValue={profile?.user.email}
-      />
+      <div>
+        <TextField
+          required
+          name="username"
+          label="Nombre de usuario"
+          defaultValue={profile?.user.username}
+          cleanRegex={new RegExp(`[^${USERNAME_REGEX}]`, "g")}
+        />
+      </div>
+      <div>
+        <TextField
+          required
+          name="email"
+          label="Correo electrónico"
+          defaultValue={profile?.user.email}
+          cleanRegex={new RegExp(`[^${EMAIL_REGEX}]`, "g")}
+        />
+      </div>
       <SelectField
         name="role"
+        label="Rol de usuario"
+        required
         selected={profile?.role}
         options={options}
         onChange={v => setCurrentRole(v as userRoleName)}
       />
       <EstablishmentSelect
+        key={currentRole}
         role={currentRole!}
         profile={profile}
       />
-      <Button type="submit" disabled={isLoading}>
-        Enviar
-      </Button>
+      <div className="flex justify-center">
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="px-6"
+        >
+          Enviar
+        </Button>
+      </div>
     </Form>
   )
 }
 
 type EstablishmentSelectProps = {
-  role: userRoleName
+  role: userRoleName | ""
   profile?: profileResponse | null
 }
 function EstablishmentSelect({
@@ -185,15 +247,36 @@ function EstablishmentSelect({
 
   useEffect(() => { request(establishmentService.get()) }, [request])
 
-  return !isLoading && (
+  const options = useMemo(() => {
+    const thisData: SelectFieldProps["options"] = []
+    if (!role) {
+      thisData.push({ value: "", label: "Seleccione un rol primero", disabled: true })
+    }
+
+    if (data) {
+      thisData.push(
+        {
+          label: "Seleccione un" + (role == "factory" ? "a planta" : " expendio"),
+          value: "",
+          disabled: true
+        },
+        ...data.filter(e => e.type == role).map(e => ({
+          value: e.id.toString(),
+          label: e.name
+        }))
+      )
+    }
+    return thisData
+  }, [data, role])
+
+  return (
     <SelectField
+      disabled={!role || isLoading}
+      required
+      label="Establecimiento"
       name="establishment"
-      options={data
-        ?.filter(e => e.type == role)
-        .map(e => ({ value: e.id.toString(), label: e.name }))
-        || []
-      }
-      selected={profile?.[role]?.establishment.id.toString()}
+      options={options}
+      selected={role && profile?.[role]?.establishment.id.toString()}
     />
   )
 }
@@ -211,37 +294,40 @@ function DeleteDialog({
   setProfile,
 }: DeleteDialogProps) {
   const { isLoading, request } = useApi()
-  
+  const { addToast } = useToast()
+
   const requestDelete = () => {
     if (!profile) return
     request(profileService.del(profile.id))
       .then(() => {
         setProfile(null)
         setIsOpen(false)
+        addToast("Usuario eliminado exitosamente", "success")
       })
       .catch((error) => {
         console.error(error)
-        alert("Error al eliminar el perfil")
+        addToast("Error al eliminar el usuario", "error")
       })
   }
   
   return (
     <Dialog
-      title="Eliminar perfil"
+      title="Eliminar usuario"
       isOpen={isOpen}
       onClose={() => setIsOpen(false)}
       loading={isLoading}
       blockMissClick
       onConfirm={requestDelete}
     >
-      ¿Estás seguro que deseas eliminar el perfil "{profile?.user.username}"?
+      ¿Estás seguro que deseas eliminar el usuario "{profile?.user.username}"?
     </Dialog>
   )
 }
 
 const validateSubmit = (data: profileRequest): string | true => {
   if (!data.username) return "El nombre de usuario es requerido"
-  //if (!data.email) return "El correo electrónico es requerido"
+  if (!data.email) return "El correo electrónico es requerido"
+  if (!data.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return "El correo electrónico no es válido"
   if (!data.role) return "El rol es requerido"
   if (!data.establishment) return "El establecimiento es requerido"
   

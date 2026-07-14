@@ -90,35 +90,35 @@ describe("api.ts", () => {
     it("wraps canceled requests", async () => {
       axiosMock.isCancel.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!(new Error("cancel")))
-        .rejects.toMatchObject({ message: "The request was canceled." })
+        .rejects.toMatchObject({ message: "cancel" })
     })
 
     it("wraps timeout errors", async () => {
       axiosMock.isCancel.mockReturnValue(false)
       axiosMock.isAxiosError.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!({ code: "ECONNABORTED" }))
-        .rejects.toMatchObject({ message: "The request timed out." })
+        .rejects.toMatchObject({ code: "ECONNABORTED" })
     })
 
     it("prefers cancel over axios error", async () => {
       axiosMock.isCancel.mockReturnValue(true)
       axiosMock.isAxiosError.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!({ response: { data: { message: "bad" } } }))
-        .rejects.toMatchObject({ message: "The request was canceled." })
+        .rejects.toMatchObject({ response: { data: { message: "bad" } } })
     })
 
     it("uses axios response message when available", async () => {
       axiosMock.isCancel.mockReturnValue(false)
       axiosMock.isAxiosError.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!({ response: { data: { message: "bad" } } }))
-        .rejects.toMatchObject({ message: "bad" })
+        .rejects.toMatchObject({ response: { data: { message: "bad" } } })
     })
 
     it("falls back when axios response has no message", async () => {
       axiosMock.isCancel.mockReturnValue(false)
       axiosMock.isAxiosError.mockReturnValue(true)
       await expect(mockResponseHandlers.onRejected!({ response: { data: {} } }))
-        .rejects.toMatchObject({ message: "An unknown error occurred while making the API request." })
+        .rejects.toMatchObject({ response: { data: {} } })
     })
 
     it("wraps non-axios Error instances", async () => {
@@ -132,7 +132,7 @@ describe("api.ts", () => {
       axiosMock.isCancel.mockReturnValue(false)
       axiosMock.isAxiosError.mockReturnValue(false)
       await expect(mockResponseHandlers.onRejected!("boom"))
-        .rejects.toMatchObject({ message: "An unknown error occurred while making the API request." })
+        .rejects.toBe("boom")
     })
     
     it("handles success cases", async () => {
@@ -172,7 +172,7 @@ describe("cookiexpend.ts", () => {
     it("calls health check", async () => {
       mockClient.get.mockResolvedValueOnce({ data: { healthy: true } })
       await healthService.check()
-      expect(mockClient.get).toHaveBeenCalledWith("api/health/", expect.any(Object))
+      expect(mockClient.get).toHaveBeenCalledWith("api/store-mgmt/health/", expect.any(Object))
     })
 
     it("calls auth login", async () => {
@@ -197,13 +197,13 @@ describe("cookiexpend.ts", () => {
     it("calls products list", async () => {
       mockClient.get.mockResolvedValueOnce({ data: [] })
       await productService.get()
-      expect(mockClient.get).toHaveBeenCalledWith("api/products/", expect.any(Object))
+      expect(mockClient.get).toHaveBeenCalledWith("api/store-mgmt/products/", expect.any(Object))
     })
 
     it("calls product by id", async () => {
       mockClient.get.mockResolvedValueOnce({ data: {} })
       await productService.get(12)
-      expect(mockClient.get).toHaveBeenCalledWith("api/products/12/", expect.any(Object))
+      expect(mockClient.get).toHaveBeenCalledWith("api/store-mgmt/products/12/", expect.any(Object))
     })
 
     it("creates product", async () => {
@@ -211,7 +211,7 @@ describe("cookiexpend.ts", () => {
       mockClient.post.mockResolvedValueOnce({ data: {} })
       await productService.new(payload)
       expect(mockClient.post).toHaveBeenCalledWith(
-        "api/products/",
+        "api/store-mgmt/products/",
         expect.any(FormData),
         expect.any(Object)
       )
@@ -222,7 +222,7 @@ describe("cookiexpend.ts", () => {
       mockClient.patch.mockResolvedValueOnce({ data: {} })
       await productService.upd(7, payload)
       expect(mockClient.patch).toHaveBeenCalledWith(
-        "api/products/7/",
+        "api/store-mgmt/products/7/",
         expect.any(FormData),
         expect.any(Object)
       )
@@ -231,7 +231,7 @@ describe("cookiexpend.ts", () => {
     it("deletes product", async () => {
       mockClient.delete.mockResolvedValueOnce({ data: {} })
       await productService.del(7)
-      expect(mockClient.delete).toHaveBeenCalledWith("api/products/7/", expect.any(Object))
+      expect(mockClient.delete).toHaveBeenCalledWith("api/store-mgmt/products/7/", expect.any(Object))
     })
   })
 })

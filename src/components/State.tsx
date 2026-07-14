@@ -113,7 +113,7 @@ export function EmptyState({
 
 type StateGateProps = {
   loading: boolean
-  error: Error | null
+  error: unknown | null
   data: unknown | null
   
   children: ReactNode
@@ -163,7 +163,6 @@ export function StateGate({
   }
 
   if (error) {
-    console.error(error)
     return <ErrorState {...errorProps} />
   }
 

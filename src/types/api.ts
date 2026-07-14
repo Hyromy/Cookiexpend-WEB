@@ -1,6 +1,32 @@
+export type ApiRequestError = {
+  message: string
+  status?: number
+  data?: unknown
+  isNetworkError: boolean
+}
+
 export type loginRequest = {
   email: string
   password: string
+}
+
+export type askResetPasswordRequest = {
+  email: string
+}
+
+export type resetPasswordResponse = {
+  success: boolean
+  message: string
+}
+
+export type confirmResetPasswordRequest = {
+  password: string
+  token: string
+}
+
+export type confirmResetPasswordResponse = {
+  success: boolean
+  message: string
 }
 
 export type sessionResponse = {
@@ -121,7 +147,6 @@ export type packageResponse = {
 
 export type deliveryRequest = {
   store: number | string
-  factory: number | string
   package: packageRequest[]
 }
 
@@ -155,7 +180,6 @@ export type inventoryResponse = itemResponse & eventResponse & {
 }
 
 export type saleRequest = {
-  store: string | number
   products: Array<{
     product: string | number
     quantity: number

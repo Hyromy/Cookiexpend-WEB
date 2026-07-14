@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useState } from "react"
 import useApi from "../../hooks/useApi"
-import type { productRequest, productResponse } from "../../types/api"
+import type { ApiRequestError, productRequest, productResponse } from "../../types/api"
 import { productService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
 import { FileField, Form, TextField } from "../../components/Form"
-import { Button } from "../../components/Button"
+import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
-import { Image, Pencil, Trash } from "lucide-react"
 import type { eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
+import useToast from "../../hooks/useToast"
 
 const PRODUCT_EVENTS = ["product"] as eventModel[]
+
+const PRODUCT_REQUIRED_ARGS = [
+  "sku",
+  "name",
+  "price",
+  "img",
+] as (keyof productRequest)[]
 
 export default function Products() {
   const { data, error, isLoading, request, setData } = useApi<productResponse[]>()
@@ -42,7 +49,14 @@ export default function Products() {
     setIsDialogOpen(true)
   }
 
-  const btnAdd = <Button onClick={openCreate}>Agregar Producto</Button>
+  const btnAdd = (
+    <Button
+      onClick={openCreate}
+      className="px-6"
+    >
+      Agregar Producto
+    </Button>
+  )
 
   return (
     <>
@@ -53,7 +67,9 @@ export default function Products() {
         emptyProps={{ title: "Productos", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {btnAdd}
+        <div className="mb-2">
+          {btnAdd}
+        </div>
         <Table
           data={data!}
           exportToExcel
@@ -70,25 +86,33 @@ export default function Products() {
               accessorKey: "img",
               header: "Imagen",
               cell: ({ getValue }) => getValue() && (
-                <Button
+                <ActionButton
+                  variant="info"
+                  icon="image"
                   disabled={!getValue()}
-                  onClick={() => {
+                  cb={() => {
                     setImageSrc(getValue() as string)
                     setIsImageOpen(true)
                   }}
-                >
-                  <Image />
-                </Button>
+                />
               )
             },
             {
               id: "actions",
               header: "Acciones",
               cell: ({ row }) => (
-                <>
-                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
-                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
-                </> 
+                <div className="flex gap-2">
+                  <ActionButton
+                    variant="warning"
+                    icon="pencil"
+                    cb={() => openEdit(row.original)}
+                  />
+                  <ActionButton
+                    variant="danger"
+                    icon="trash"
+                    cb={() => openDelete(row.original)}
+                  />
+                </div>
               )
             }
           ]}
@@ -117,7 +141,7 @@ export default function Products() {
         isOpen={isImageOpen}
         onClose={() => {
           setIsImageOpen(false)
-          setImageSrc("")
+          setTimeout(() => setImageSrc(""), 300)
         }}
         title="Imagen del producto"
       >
@@ -139,13 +163,39 @@ type ProductFormProps = {
 }
 function ProductForm({ product, onDone }: ProductFormProps) {
   const { isLoading, request, setData } = useApi()
+  const { addToast } = useToast()
 
   useEffect(() => { if (product) setData(product) }, [product, setData])
 
+  const submitErrorHandler = (err: ApiRequestError) => {
+    const errData: Record<string, string[]> = err.data as Record<string, string[]>
+    const thisIncludes = (str: string) => (i: string) => i.includes(str)
+
+    if (errData?.sku?.find(thisIncludes("already exists"))) {
+      addToast("Ya existe un producto con el mismo SKU, por favor ingrese uno diferente", "warning")
+      return
+    }
+    if (errData?.name?.find(thisIncludes("already exists"))) {
+      addToast("Ya existe un producto con el mismo nombre, por favor ingrese uno diferente", "warning")
+      return
+    }
+    if (errData?.price?.find(thisIncludes("no more than"))) {
+      addToast("El precio no puede ser mayor a 9999.99", "warning")
+      return
+    }
+    if (errData?.img?.find(thisIncludes("valid image"))) {
+      addToast("Por favor, seleccione una imagen válida", "warning")
+      return
+    }
+
+    addToast("Error al guardar el producto, por favor intente más tarde", "error")
+  }
+
   const onSubmitHandler = (data: productRequest) => {
-    const validation = validateSubmit(data, product ? "upd" : "new")
+    clearData(data)
+    const validation = validate(data)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
@@ -153,40 +203,60 @@ function ProductForm({ product, onDone }: ProductFormProps) {
       ? request(productService.upd(product.id, data))
       : request(productService.new(data))
 
-    ).then((response) => {
-      if (!response) return
-      alert("Producto creado con exito!")
+    ).then(() => {
+      addToast(`Producto ${product ? "actualizado" : "creado"} con éxito`, "success")
       onDone?.()
 
-    }).catch((error) => {
-      console.error(error)
-      alert("Error al crear el producto")
-    })
+    }).catch((error) => submitErrorHandler(error))
   }
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField
-        name="sku"
-        placeholder="SKU"
-        defaultValue={product?.sku}  
-      />
-      <TextField
-        name="name"
-        placeholder="nombre"
-        defaultValue={product?.name}  
-      />
-      <TextField
-        name="price"
-        placeholder="precio"
-        defaultValue={product?.price}
-      />
-      <FileField
-        name="img"
-      />
-      <Button type="submit" disabled={isLoading}>
-        Enviar
-      </Button>
+      <div>
+        <TextField
+          cleanRegex={/\D/}
+          required
+          name="sku"
+          label="SKU"
+          defaultValue={product?.sku}  
+        />
+      </div>
+      <div>
+        <TextField
+          required
+          cleanRegex={/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g}
+          name="name"
+          label="Nombre"
+          defaultValue={product?.name}  
+        />
+      </div>
+      <div>
+        <TextField
+          required
+          cleanRegex={/[^0-9.]|(?<=\..*)\./g}
+          name="price"
+          label="Precio"
+          defaultValue={product?.price}
+          placeholder="0.00"
+        />
+      </div>
+      <div>
+        <FileField
+          label="Imagen"
+          required={!product}
+          name="img"
+          value={product?.img}
+        />
+      </div>
+      <div className="flex justify-center">
+        <Button
+          className="px-6"
+          type="submit"
+          disabled={isLoading}
+        >
+          Guardar
+        </Button>
+      </div>
     </Form>
   )
 }
@@ -204,6 +274,7 @@ function DeleteDialog({
   setProduct
 } : DeleteDialogProps) {
   const { isLoading, request } = useApi()
+  const { addToast } = useToast()
 
   const requestDelete = () => {
     if (!product) return
@@ -211,10 +282,11 @@ function DeleteDialog({
       .then(() => {
         setProduct(null)
         setIsOpen(false)
+        addToast("Producto eliminado con éxito", "success")
       })
       .catch((error) => {
         console.error(error)
-        alert("Error al eliminar el producto")
+        addToast("Error al eliminar el producto", "error")
       })
   }
 
@@ -232,30 +304,25 @@ function DeleteDialog({
   )
 }
 
-const validateSubmit = (data: productRequest, type: "new" | "upd"): string | true => {
-  if (type == "new") {
-    if (
-      !data.sku
-      || !data.name
-      || !data.price
-      || !data.img
-      || (data.img instanceof File && data.img.size == 0)
-    ) {
-      return "Por favor llena todos los campos antes de registrar"
+const clearData = (data: productRequest) => {
+  PRODUCT_REQUIRED_ARGS.filter(k => k != "img").forEach(key => {
+    if (data[key]) {
+      data[key] = data[key].trim().replace(/\s+/g, " ")
     }
-  } else if (type == "upd") {
-    if (
-      !data.sku
-      && !data.name
-      && !data.price
-      && !(data.img instanceof File && data.img.size > 0)
-    ) {
-      return "Por favor ingresa al menos un campo para actualizar"
-    }
+  })
+
+  data.price = parseFloat(data.price).toFixed(2)
+}
+
+const validate = (data: productRequest): string | true => {
+  if (PRODUCT_REQUIRED_ARGS.some(k => !data[k])) {
+    return "Por favor, complete todos los campos obligatorios."
   }
-  
-  if (data.price && parseFloat(data.price) <= 0) {
+  if (parseFloat(data.price) <= 0) {
     return "Por favor, ingrese un precio válido"
+  }
+  if (parseInt(data.sku) <= 0) {
+    return "Por favor, ingrese un SKU numérico válido"
   }
 
   return true
