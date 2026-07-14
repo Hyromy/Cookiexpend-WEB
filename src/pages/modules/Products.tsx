@@ -214,11 +214,12 @@ function ProductForm({ product, onDone }: ProductFormProps) {
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
       <div>
         <TextField
-          cleanRegex={/\D/}
+          cleanRegex={/[^a-zA-Z0-9-]/}
+          maxLen={18}
           required
           name="sku"
           label="SKU"
-          defaultValue={product?.sku}  
+          defaultValue={product?.sku}
         />
       </div>
       <div>

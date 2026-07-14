@@ -24,7 +24,7 @@ export default function NotFound() {
       <p className="text-muted text-center">
         La pagina o contenido que estás buscando no existe
       </p>
-      <Button className="mt-6" onClick={onClickHandler}>
+      <Button className="mt-6 px-6" onClick={onClickHandler}>
         Volver atrás
       </Button>
     </section>

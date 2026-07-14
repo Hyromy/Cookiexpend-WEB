@@ -132,7 +132,24 @@ export type productRequest = {
 }
 
 export type productResponse = Omit<productRequest, "img"> & itemResponse & eventResponse & {
+  badge: string
+  category: categoryResponse | null
+  description: string
   img: string | null
+  presentation: presentationResponse | null
+  slug: string
+  variants: productResponse[]
+}
+
+export type categoryResponse = itemResponse & eventResponse & {
+  label: string
+  order: number
+  logo: string | null
+}
+
+export type presentationResponse = itemResponse & eventResponse & {
+  label: string
+  order: number
 }
 
 export type packageRequest = {

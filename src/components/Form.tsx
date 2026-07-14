@@ -69,6 +69,7 @@ type TextFieldProps = {
   cleanEmpty?: boolean
   readonly?: boolean
   disabled?: boolean
+  maxLen?: number
 }
 /**
  * A reusable text input component for forms, supporting different types and placeholders.
@@ -84,6 +85,7 @@ type TextFieldProps = {
  * @param cleanEmpty Whether to remove leading and trailing whitespace from the input value (default: false)
  * @param readonly Whether the input field is read-only (default: false)
  * @param disabled Whether the input field is disabled (default: false)
+ * @param maxLen An optional maximum length for the input value
  * 
  * @example
  * <TextField name="email" placeholder="Email" />
@@ -101,6 +103,7 @@ export function TextField({
   cleanEmpty = false,
   readonly = false,
   disabled = false,
+  maxLen,
 }: TextFieldProps) {
   const [value, setValue] = useState(defaultValue)
   const [showPassword, setShowPassword] = useState(false)
@@ -113,6 +116,9 @@ export function TextField({
     }
     if (cleanRegex) {
       inputValue = inputValue.replace(cleanRegex, () => "")
+    }
+    if (maxLen && inputValue.length > maxLen) {
+      inputValue = inputValue.slice(0, maxLen)
     }
 
     setValue(inputValue)

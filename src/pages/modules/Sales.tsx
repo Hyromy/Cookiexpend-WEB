@@ -54,7 +54,7 @@ export default function Sales() {
       Registrar Nueva Venta
     </Button>
   )
-  const showBtnSale = user?.role == "Factory manager" && btnSale
+  const showBtnSale = user?.role != "Factory manager" && btnSale
 
   return (
     <>
@@ -139,7 +139,10 @@ export default function Sales() {
         title="Registrar nueva venta"
         size="xxl"
       >
-        <SalesForm onDone={() => setIsModalOpen(false)} />
+        <SalesForm onDone={(newSale) => {
+          setIsModalOpen(false)
+          prepareAndPrint(newSale)
+        }} />
       </Modal>
     </>
   )
@@ -237,7 +240,7 @@ type rawSaleData = {
 }
 
 type SalesFormProps = {
-  onDone: () => void
+  onDone: (sale: saleResponse) => void
 }
 function SalesForm({
   onDone
@@ -278,10 +281,10 @@ function SalesForm({
     }
 
     pushRequest(saleService.new(parsedData))
-    .then(() => {
+    .then((data) => {
       addToast("Venta registrada exitosamente", "success")
       clearForm()
-      onDone()
+      onDone(data!)
     })
     .catch((error) => {
       console.error(error)
