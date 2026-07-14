@@ -1,6 +1,7 @@
 export const PATHS = {
   login: "/",
   recover_account: "/recuperar-cuenta",
+  reset_password: "/restablecer-acceso",
   panel: "/panel",
   products: "/productos",
   users: "/usuarios",

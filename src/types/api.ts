@@ -10,6 +10,25 @@ export type loginRequest = {
   password: string
 }
 
+export type askResetPasswordRequest = {
+  email: string
+}
+
+export type resetPasswordResponse = {
+  success: boolean
+  message: string
+}
+
+export type confirmResetPasswordRequest = {
+  password: string
+  token: string
+}
+
+export type confirmResetPasswordResponse = {
+  success: boolean
+  message: string
+}
+
 export type sessionResponse = {
   success: boolean
   message?: string

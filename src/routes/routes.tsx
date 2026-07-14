@@ -10,6 +10,7 @@ import ProtectedRoute from "./ProtectedRoute"
 import NotFound from "../pages/public/NotFound"
 const Login = lazy(() => import("../pages/public/Login"))
 const Recover = lazy(() => import("../pages/public/Recover"))
+const ResetPassword = lazy(() => import("../pages/public/ResetPassword"))
 
 export const routes = [
   {
@@ -19,6 +20,10 @@ export const routes = [
   {
     path: PATHS.recover_account,
     element: <Recover />,
+  },
+  {
+    path: PATHS.reset_password,
+    element: <ResetPassword />,
   },
   {
     path: "*",

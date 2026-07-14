@@ -114,7 +114,13 @@ function Profile() {
       >
         <ProfileForm
           user={user!}
-          onDone={() => setIsModalOpen(false)}
+          onDone={(wasUpdated) => {
+            setIsModalOpen(false)
+            if (wasUpdated) {
+              navigate(PATHS.login)
+              refresh()
+            }
+          }}
         />
       </Modal>
       <Dialog
@@ -131,7 +137,7 @@ function Profile() {
 
 type ProfileFormProps = {
   user: meResponse
-  onDone: () => void
+  onDone: (wasUpdated: boolean) => void
 }
 function ProfileForm({
   user,
@@ -149,8 +155,8 @@ function ProfileForm({
 
     request(authService.upd(data))
     .then(() => {
-      addToast("Perfil actualizado correctamente", "success")
-      onDone()
+      addToast("Perfil actualizado correctamente" + (data.password ? ". Inicia sesión nuevamente." : ""), "success")
+      onDone(!!data.password)
     })
     .catch(err => {
       addToast("Error al actualizar el perfil", "error")
@@ -205,6 +211,9 @@ function ProfileForm({
           label="Contraseña"
           type="password"
         />
+        <div className="text-sm text-muted p-2 px-8 text-center">
+          Al ingresar una nueva contraseña, se cerrará la sesión actual y deberás iniciar sesión nuevamente.
+        </div>
       </div>
       <div className="flex justify-center">
         <Button

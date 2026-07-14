@@ -57,7 +57,10 @@ export default function Login() {
 
   return (
     <Card className="flex flex-col gap-8">
-      <Header />
+      <Header
+        title="Bienvenido de nuevo"
+        text="Ingresa tus credenciales para acceder"
+      />
       <Form
         onSubmit={onSubmitHandler}
         className="flex flex-col gap-4"
@@ -87,30 +90,46 @@ export default function Login() {
           </Button>
         </div>
       </Form>
-      <Bottom />
+      <Bottom
+        href={PATHS.recover_account}
+        text="¿Olvidaste tu contraseña?"
+      />
     </Card>
   )
 }
 
-function Header() {
+type HeaderProps = {
+  title: string
+  text: string
+}
+export function Header({ title, text }: HeaderProps) {
   return (
     <div className="text-center">
       <h2 className="text-3xl font-bold tracking-tight">
-        Bienvenido de nuevo
+        {title}
       </h2>
       <p className="mt-2 text-sm text-muted">
-        Ingresa tus credenciales para acceder
+        {text}
       </p>
     </div>
   )
 }
 
-function Bottom() {
+type BottomProps = {
+  href: string
+  text: string
+}
+export function Bottom({ href, text }: BottomProps) {
+  const navigate = useNavigate()
+
   return (
     <div className="flex items-center justify-between">
       <ThemeButton />
-      <a href={PATHS.recover_account} className="text-xs font-semibold text-muted hover:text-primary/75">
-        ¿Olvidaste tu contraseña?
+      <a className="text-xs font-semibold text-muted hover:text-primary/75 cursor-pointer" onClick={(e) => {
+        e.preventDefault()
+        navigate(href)
+      }}>
+        {text}
       </a>
     </div>
   )

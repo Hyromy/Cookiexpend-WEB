@@ -55,6 +55,14 @@ class AuthService {
   upd(data: apiType.meRequest): Promise<apiType.meResponse> {
     return api.patch(this.endpoint + "update/", data)
   }
+
+  askResetPassword(data: apiType.askResetPasswordRequest): Promise<apiType.resetPasswordResponse> {
+    return api.post(this.endpoint + "reset/request/", data)
+  }
+
+  confirmResetPassword(data: apiType.confirmResetPasswordRequest): Promise<apiType.confirmResetPasswordResponse> {
+    return api.post(this.endpoint + "reset/confirm/", data)
+  }
 }
 
 class EstablishmentService {
