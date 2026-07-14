@@ -107,6 +107,12 @@ export function TextField({
 }: TextFieldProps) {
   const [value, setValue] = useState(defaultValue)
   const [showPassword, setShowPassword] = useState(false)
+  const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue)
+
+  if (defaultValue != prevDefaultValue) {
+    setPrevDefaultValue(defaultValue)
+    setValue(defaultValue)
+  }
 
   const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
     let inputValue = e.currentTarget.value

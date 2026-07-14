@@ -19,7 +19,7 @@ export const Ticket = forwardRef<HTMLDivElement, TicketProps>(({
   return (
     <div
       ref={ref}
-      className="w-[75mm] p-2 font-mono text-[11px] text-black antialiased bg-amber-50"
+      className="w-[75mm] p-2 font-mono text-[11px] text-black antialiased"
       style={{ letterSpacing: '-0.1px' }}
     >
       {header && (
