@@ -129,10 +129,37 @@ export type productRequest = {
   name: string
   price: string
   img?: File
+  description?: string
+  badge?: string
+  category?: string | number
+  presentation?: string | number
+  variants?: Array<string | number>
 }
 
-export type productResponse = Omit<productRequest, "img"> & itemResponse & eventResponse & {
+export type productVariantResponse = itemResponse & {
+  slug: string
+  name: string
+}
+
+export type productResponse = Omit<productRequest, "img" | "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
+  slug: string
   img: string | null
+  category: categoryResponse | null
+  presentation: presentationResponse | null
+  variants: productVariantResponse[]
+}
+
+// Note: Category/Presentation are only exposed via `{id, label, order[, logo]}` by
+// their backend serializers (apps/catalog/serializers.py) — no audit fields.
+export type categoryResponse = itemResponse & {
+  label: string
+  order: number
+  logo: string | null
+}
+
+export type presentationResponse = itemResponse & {
+  label: string
+  order: number
 }
 
 export type packageRequest = {
