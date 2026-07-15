@@ -26,7 +26,14 @@ const args = (data: Record<string, string | number>): string => {
 const buildFormData = (obj: Record<string, unknown>): FormData => {
   const fd = new FormData()
   for (const key in obj) {
-    fd.append(key, obj[key] as string | Blob)
+    const value = obj[key]
+    if (value === undefined || value === null || value === "") continue
+
+    if (Array.isArray(value)) {
+      value.forEach(item => fd.append(key, String(item)))
+    } else {
+      fd.append(key, value as string | Blob)
+    }
   }
   return fd
 }
@@ -110,6 +117,22 @@ class StoreService {
 
   del(id: string | number): Promise<void> {
     return api.delete(this.endpoint + param(id))
+  }
+}
+
+class CategoryService {
+  readonly endpoint = "api/catalog/categories/"
+
+  get(id: string | number = ""): Promise<apiType.categoryResponse | apiType.categoryResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+}
+
+class PresentationService {
+  readonly endpoint = "api/catalog/presentations/"
+
+  get(id: string | number = ""): Promise<apiType.presentationResponse | apiType.presentationResponse[]> {
+    return api.get(this.endpoint + param(id))
   }
 }
 
@@ -213,6 +236,8 @@ export const authService = Object.freeze(new AuthService())
 export const establishmentService = Object.freeze(new EstablishmentService())
 export const factoryService = Object.freeze(new FactoryService())
 export const storeService = Object.freeze(new StoreService())
+export const categoryService = Object.freeze(new CategoryService())
+export const presentationService = Object.freeze(new PresentationService())
 export const productService = Object.freeze(new ProductService())
 export const deliveryService = Object.freeze(new DeliveryService())
 export const inventoryService = Object.freeze(new InventoryService())

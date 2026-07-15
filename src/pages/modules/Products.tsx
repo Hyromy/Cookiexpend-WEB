@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import useApi from "../../hooks/useApi"
-import type { ApiRequestError, productRequest, productResponse } from "../../types/api"
-import { productService } from "../../services/cookiexpend"
+import type { ApiRequestError, categoryResponse, presentationResponse, productRequest, productResponse } from "../../types/api"
+import { categoryService, presentationService, productService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
-import { FileField, Form, TextField } from "../../components/Form"
+import { FileField, Form, MultiSelectField, SelectField, TextAreaField, TextField, type SelectFieldProps } from "../../components/Form"
 import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
 import type { eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 import useToast from "../../hooks/useToast"
+import Dropdown from "../../components/Dropdown"
 
 const PRODUCT_EVENTS = ["product"] as eventModel[]
 
@@ -78,6 +79,16 @@ export default function Products() {
             { accessorKey: "sku", header: "SKU" },
             { accessorKey: "name", header: "Nombre" },
             {
+              accessorKey: "badge",
+              header: "Etiqueta",
+              cell: ({ getValue }) => getValue() && (
+                <span className="rounded-full bg-primary/15 text-primary px-2.5 py-1 text-xs font-medium">
+                  {getValue() as string}
+                </span>
+              )
+            },
+            { accessorKey: "category.label", header: "Categoría" },
+            {
               accessorKey: "price",
               header: "Precio",
               cell: ({ getValue }) => `$${getValue()}`,
@@ -101,6 +112,26 @@ export default function Products() {
               ),
               meta: {
                 setCellToExport: row => row.img ? `=IMAGE("${row.img}")` : "-"
+              }
+            },
+            {
+              id: "variants",
+              header: "Variantes",
+              cell: ({ row }) => {
+                const variants = row.original.variants
+                if (!variants.length) return null
+
+                return (
+                  <Dropdown
+                    options={variants.map(v => (
+                      <span key={v.id} className="block px-4 py-2 text-sm text-fg">
+                        {v.name}
+                      </span>
+                    ))}
+                  >
+                    {variants.length}
+                  </Dropdown>
+                )
               }
             },
             {
@@ -170,6 +201,9 @@ type ProductFormProps = {
 function ProductForm({ product, onDone }: ProductFormProps) {
   const { isLoading, request, setData } = useApi()
   const { addToast } = useToast()
+  const [variantIds, setVariantIds] = useState<string[]>(
+    () => product?.variants.map(v => v.id.toString()) ?? []
+  )
 
   useEffect(() => { if (product) setData(product) }, [product, setData])
 
@@ -198,6 +232,7 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   }
 
   const onSubmitHandler = (data: productRequest) => {
+    data.variants = variantIds
     clearData(data)
     const validation = validate(data)
     if (validation != true) {
@@ -255,6 +290,34 @@ function ProductForm({ product, onDone }: ProductFormProps) {
           value={product?.img}
         />
       </div>
+      <div>
+        <TextField
+          maxLen={50}
+          name="badge"
+          label="Etiqueta"
+          placeholder="Ej. Nuevo, Oferta"
+          defaultValue={product?.badge}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <CategorySelectField defaultValue={product?.category?.id.toString()} />
+        <PresentationSelectField defaultValue={product?.presentation?.id.toString()} />
+      </div>
+      <div>
+        <TextAreaField
+          maxLen={500}
+          name="description"
+          label="Descripción"
+          defaultValue={product?.description}
+        />
+      </div>
+      <div>
+        <VariantsField
+          excludeId={product?.id}
+          selected={variantIds}
+          onChange={setVariantIds}
+        />
+      </div>
       <div className="flex justify-center">
         <Button
           className="px-6"
@@ -265,6 +328,81 @@ function ProductForm({ product, onDone }: ProductFormProps) {
         </Button>
       </div>
     </Form>
+  )
+}
+
+type CategorySelectFieldProps = {
+  defaultValue?: string
+}
+function CategorySelectField({ defaultValue }: CategorySelectFieldProps) {
+  const { data, request } = useApi<categoryResponse[]>()
+
+  useEffect(() => { request(categoryService.get()) }, [request])
+
+  const options: SelectFieldProps["options"] = (data ?? []).map(c => ({
+    value: c.id.toString(),
+    label: c.label,
+  }))
+
+  return (
+    <SelectField
+      name="category"
+      label="Categoría"
+      placeholder="Sin categoría"
+      selected={defaultValue}
+      options={options}
+    />
+  )
+}
+
+type PresentationSelectFieldProps = {
+  defaultValue?: string
+}
+function PresentationSelectField({ defaultValue }: PresentationSelectFieldProps) {
+  const { data, request } = useApi<presentationResponse[]>()
+
+  useEffect(() => { request(presentationService.get()) }, [request])
+
+  const options: SelectFieldProps["options"] = (data ?? []).map(p => ({
+    value: p.id.toString(),
+    label: p.label,
+  }))
+
+  return (
+    <SelectField
+      name="presentation"
+      label="Presentación"
+      placeholder="Sin presentación"
+      selected={defaultValue}
+      options={options}
+    />
+  )
+}
+
+type VariantsFieldProps = {
+  excludeId?: number
+  selected: string[]
+  onChange: (values: string[]) => void
+}
+function VariantsField({ excludeId, selected, onChange }: VariantsFieldProps) {
+  const { data, request } = useApi<productResponse[]>()
+
+  useEffect(() => { request(productService.get()) }, [request])
+
+  const options = useMemo(() => (
+    (data ?? [])
+      .filter(p => p.id != excludeId)
+      .map(p => ({ value: p.id.toString(), label: p.name }))
+  ), [data, excludeId])
+
+  return (
+    <MultiSelectField
+      label="Variantes"
+      placeholder="Buscar productos..."
+      options={options}
+      selected={selected}
+      onChange={onChange}
+    />
   )
 }
 
@@ -312,11 +450,16 @@ function DeleteDialog({
 }
 
 const clearData = (data: productRequest) => {
+  const record = data as Record<string, unknown>
   PRODUCT_REQUIRED_ARGS.filter(k => k != "img").forEach(key => {
-    if (data[key]) {
-      data[key] = data[key].trim().replace(/\s+/g, " ")
+    const value = record[key]
+    if (typeof value == "string" && value) {
+      record[key] = value.trim().replace(/\s+/g, " ")
     }
   })
+
+  if (data.badge) data.badge = data.badge.trim().replace(/\s+/g, " ")
+  if (data.description) data.description = data.description.trim()
 
   data.price = parseFloat(data.price).toFixed(2)
 }
