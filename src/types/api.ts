@@ -207,6 +207,7 @@ export type inventoryResponse = itemResponse & eventResponse & {
 }
 
 export type saleRequest = {
+  received: string
   products: Array<{
     product: string | number
     quantity: number
@@ -217,6 +218,13 @@ export type saleResponse = itemResponse & eventResponse & {
   date: string
   store: storeResponse
   total: string
+  received: string
+  returned: string
+  seller: {
+    id: number
+    name: string
+  }
+  seller_name: string
   details: Array<saleDetailResponse>
   payments: Array<paymentResponse>
 }
@@ -225,6 +233,7 @@ export type saleDetailResponse = itemResponse & eventResponse & {
   price: string
   quantity: number
   product: productResponse
+  product_name: string
 }
 
 export type paymentResponse = itemResponse & eventResponse & {

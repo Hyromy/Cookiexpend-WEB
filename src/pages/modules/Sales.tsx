@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
 import { Table } from "../../components/Table"
-import { Form } from "../../components/Form"
+import { Form, TextField } from "../../components/Form"
 import { ActionButton, Button } from "../../components/Button"
 import { inventoryService, saleService } from "../../services/cookiexpend"
 import type { inventoryResponse, saleRequest, saleResponse } from "../../types/api"
@@ -17,6 +17,7 @@ import { Ticket } from "../../components/Ticket"
 import { useReactToPrint } from "react-to-print"
 import Dropdown from "../../components/Dropdown"
 import useToast from "../../hooks/useToast"
+import { clsx } from "clsx"
 
 const SALE_EVENTS = ["sell"] as eventModel[]
 
@@ -70,7 +71,31 @@ export default function Sales() {
         </div>
         <Table
           data={data!}
-          exportToExcel
+          exportToExcel={{
+            sheetName: "Ventas",
+            sheets: [
+              {
+                sheetName: "Productos vendidos",
+                getData: data => {
+                  const result: Record<string, unknown>[] = []
+
+                  data.forEach(sale => {
+                    sale.details.forEach(detail => {
+                      result.push({
+                        "ID Venta": sale.id,
+                        "SKU": detail.product.sku,
+                        "Producto": detail.product_name,
+                        "Cantidad": detail.quantity,
+                        "Precio unitario": detail.price,
+                      })
+                    })
+                  })
+
+                  return result
+                }
+              }
+            ]
+          }}
           filename="Ventas"
           columns={[
             { accessorKey: "id", header: "ID" },
@@ -78,6 +103,7 @@ export default function Sales() {
               ? [{ accessorKey: "store.establishment.name", header: "Expendio" }]
               : []
             ),
+            { accessorKey: "seller_name", header: "Cajero" },
             {
               accessorKey: "details",
               header: "Productos vendidos",
@@ -103,12 +129,18 @@ export default function Sales() {
                     </Dropdown>
                   </>
                 )
+              },
+              meta: {
+                setCellToExport: row => row.details.flatMap(p => Array(p.quantity).fill(p)).length
               }
             },
             { 
               accessorKey: "date",
               header: "Fecha",
-              cell: ({ getValue }) => parseDate(getValue() as string)
+              cell: ({ getValue }) => parseDate(getValue() as string),
+              meta: {
+                setCellToExport: row => parseDate(row.date)
+              }
             },
             {
               accessorKey: "total",
@@ -155,6 +187,16 @@ type ThisTicketProps = {
 function ThisTicket({ ref, sale }: ThisTicketProps) {
   const totalProductsQty = sale.details?.reduce((acc, detail) => acc + detail.quantity, 0) || 0
 
+  const parsePaymentMethod = (method: string) => {
+    switch (method) {
+      case "cash":
+        return "Efectivo"
+      
+      default:
+        return method
+    }
+  }
+
   const header = (
     <>
       <h2 className="text-sm font-bold tracking-wider uppercase">
@@ -170,7 +212,7 @@ function ThisTicket({ ref, sale }: ThisTicketProps) {
     <>
       <div><span className="font-bold">No. Ticket:</span> #{sale.id}</div>
       <div><span className="font-bold">Fecha:</span> {parseDate(sale.date)}</div>
-      <div><span className="font-bold">Cajero:</span> {"{User}"}</div>
+      <div><span className="font-bold">Cajero:</span> {sale.seller_name}</div>
     </>
   )
   const body = (
@@ -185,7 +227,7 @@ function ThisTicket({ ref, sale }: ThisTicketProps) {
       <tbody className="divide-y divide-dashed divide-gray-200">
         {sale.details?.map((detail) => (
           <tr key={detail.id} className="align-top">
-            <td className="py-1 pr-1 truncate">{detail.product?.name}</td>
+            <td className="py-1 pr-1 truncate">{detail.product_name}</td>
             <td className="py-1 text-center font-bold">{detail.quantity}</td>
             <td className="py-1 text-right">${(Number(detail.price) * detail.quantity).toFixed(2)}</td>
           </tr>
@@ -205,12 +247,16 @@ function ThisTicket({ ref, sale }: ThisTicketProps) {
       </div>
       <div className="pt-1 text-[10px] space-y-0.5 border-t border-dashed border-gray-300">
         <div className="flex justify-between">
+          <span>Método de pago:</span>
+          <span>{parsePaymentMethod(sale.payments[0].payment_method.name)}</span>
+        </div>
+        <div className="flex justify-between">
           <span>Recibido:</span>
-          <span>${sale.total}</span>
+          <span>${sale.received}</span>
         </div>
         <div className="flex justify-between font-bold">
           <span>Cambio:</span>
-          <span>${0}</span>
+          <span>${sale.returned}</span>
         </div>
       </div>
     </>
@@ -237,6 +283,7 @@ function ThisTicket({ ref, sale }: ThisTicketProps) {
 type rawSaleData = {
   store: string
   [key: `product-${number}`]: string
+  received: string
 }
 
 type SalesFormProps = {
@@ -246,13 +293,17 @@ function SalesForm({
   onDone
 }: SalesFormProps) {
   const [quantities, setQuantities] = useState<Record<number, number>>({})
+  const [received, setReceived] = useState<string>("")
   const { data, request } = useApi<inventoryResponse[]>()
   const { isLoading: pushLoading, request: pushRequest } = useApi<saleResponse>()
   const { addToast } = useToast()
 
   useEffect(() => { request(inventoryService.get()) }, [request])
 
-  const clearForm = () => setQuantities({})
+  const clearForm = () => {
+    setQuantities({})
+    setReceived("")
+  }
 
   const handleQuantityChange = (productId: number, quantity: string) => {
     setQuantities(prev => ({
@@ -287,10 +338,25 @@ function SalesForm({
       onDone(data!)
     })
     .catch((error) => {
+      if (/amount.+less/.test(error.data.received)) {
+        addToast("El monto recibido es menor al total de la venta.", "error")
+        return
+      }
       console.error(error)
       addToast("Ocurrió un error al registrar la venta. Por favor, intenta de nuevo.", "error")
     })
   }
+
+  const amountReturned = useMemo(() => {
+    const receivedNum = parseFloat(received) || 0
+    if (receivedNum <= total) return 0
+    
+    const diff = receivedNum - total
+    
+    const truncated = Math.trunc(diff * 100) / 100
+    
+    return truncated
+  }, [total, received])
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-2">
@@ -300,7 +366,29 @@ function SalesForm({
         quantities={quantities}
       />
       <hr className="border-muted" />
-      <PriceDisplay total={total} />
+      <div className="flex flex-row gap-8 items-center justify-center">
+        <PriceDisplay
+          text="Total"
+          price={total}
+        />
+        <PriceDisplay
+          text="Cambio"
+          price={total > 0 ? amountReturned : 0}
+        />
+      </div>
+      <TextField
+        name="received"
+        label="Monto recibido"
+        required
+        placeholder="0.00"
+        defaultValue={received}
+        cleanRegex={/[^0-9.]/g}
+        maxLen={7}
+        onChange={(e) => {
+          e.preventDefault()
+          setReceived(e.target.value)
+        }}
+      />
       <div className="flex flex-row gap-4">
         <Button
           type="reset"
@@ -419,7 +507,7 @@ function ProductChooser({
   onQuantityChange,
   quantities
 }: {
-  inventoryItems: parsedInventory["products"] // [{ product, quantity }]
+  inventoryItems: parsedInventory["products"]
   onQuantityChange: (id: number, val: string) => void
   quantities: Record<number, number>
 }) {
@@ -448,17 +536,30 @@ function ProductChooser({
   )
 }
 
-function PriceDisplay({ total }: { total: number }) {
+function PriceDisplay({ text, price }: { text: string, price: number }) {
   return (
     <div className="text-xl font-bold">
-      <span>Total: </span>
-      <span>${total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+      <span>{text}: </span>
+      <span className={clsx(
+        "transition-colors duration-300 ease-in-out",
+        price > 0 && "text-success"
+      )}>
+        $
+        {price.toLocaleString(
+          "es-MX", { 
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }
+        )}
+      </span>
     </div>
   )
 }
 
 const parseData = (data: rawSaleData): saleRequest => {
-  return { products: Object.keys(data)
+  return { 
+    received: data.received || "0",
+    products: Object.keys(data)
     .filter(key => key.startsWith("product-"))
     .map(key => ({
       product: key.replace("product-", ""),
@@ -472,6 +573,6 @@ const validateData = (data: saleRequest): string | true => {
   if (data.products.length <= 0) {
     return "Por favor, ingresa al menos una cantidad para vender"
   }
-
+  
   return true
 }

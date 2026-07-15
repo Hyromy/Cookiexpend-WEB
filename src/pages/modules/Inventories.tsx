@@ -56,7 +56,30 @@ function ThisTable({ data }: { data: parsedInventory[] }) {
   return (
     <Table
       data={data}
-      exportToExcel
+      exportToExcel={{
+        sheetName: "Expendios",
+        sheets: [
+          {
+            sheetName: "Inventario",
+            getData: data => {
+              const rows: Record<string, unknown>[] = []
+
+              data.forEach(inventory => {
+                inventory.products.forEach(product => {
+                  rows.push({
+                    "Expendio": inventory.store.establishment.name,
+                    "Producto": product.product.name,
+                    "Cantidad": product.quantity,
+                    "SKU": product.product.sku,
+                  })
+                })
+              })
+
+              return rows
+            }
+          }
+        ]
+      }}
       filename="Inventarios"
       columns={[
         { accessorKey: "store.establishment.name", header: "Expendio" },
@@ -67,24 +90,22 @@ function ThisTable({ data }: { data: parsedInventory[] }) {
             const totalProducts = (getValue() as parsedInventory["products"]).flatMap(p => Array(p.quantity).fill(p)).length
 
             return (
-              <>
-                <span className="hidden">
-                  {totalProducts}
-                </span>
-                <Dropdown
-                  options={(getValue() as parsedInventory["products"]).map(p => (
-                    <span
-                      key={p.product.id}
-                      className="block px-4 py-2 text-sm text-fg"
-                    >
-                      {p.product.name} (x{p.quantity})
-                    </span>
-                  ))}
-                >
-                  {totalProducts}
-                </Dropdown>
-              </>
+              <Dropdown
+                options={(getValue() as parsedInventory["products"]).map(p => (
+                  <span
+                    key={p.product.id}
+                    className="block px-4 py-2 text-sm text-fg"
+                  >
+                    {p.product.name} (x{p.quantity})
+                  </span>
+                ))}
+              >
+                {totalProducts}
+              </Dropdown>
             )
+          },
+          meta: {
+            setCellToExport: row => row.products.flatMap(p => Array(p.quantity).fill(p)).length
           }
         },
       ]}

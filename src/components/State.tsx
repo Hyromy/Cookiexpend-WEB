@@ -81,7 +81,10 @@ export function ErrorState({
       message={message}
       content={
         onRetry && (
-          <Button onClick={onRetry}>
+          <Button
+            className="px-6"
+            onClick={onRetry}
+          >
             {retryLabel}
           </Button>
         )
