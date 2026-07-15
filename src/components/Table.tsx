@@ -8,6 +8,7 @@ import {
   getFilteredRowModel,
   type SortingState,
   type Header,
+  type Row,
 } from "@tanstack/react-table"
 import { useState } from "react"
 import * as XLSX from "xlsx"
@@ -23,10 +24,26 @@ import { Button } from "./Button"
 import { SelectField } from "./Form"
 import { Excel } from "./Icon"
 
+declare module '@tanstack/react-table' {
+  interface ColumnMeta<TData, TValue> {
+    setCellToExport?: (row: TData, value?: TValue) => unknown
+  }
+}
+
+export type ExcelSheetConfig<T> = {
+  sheetName: string
+  getData: (data: T[]) => Record<string, unknown>[]
+}
+
+export type ExcelExportConfig<T> = {
+  sheetName: string
+  sheets?: ExcelSheetConfig<T>[]
+}
+
 type TableProps<T> = {
   data: T[]
   columns: ColumnDef<T>[]
-  exportToExcel?: boolean
+  exportToExcel?: boolean | ExcelExportConfig<T>
   filename?: string
   excludeFromView?: (row: T) => boolean
 }
@@ -64,6 +81,10 @@ export function Table<T>({
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState("")
 
+  const functionsKWs = [
+    "IMAGE",
+  ]
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
@@ -85,23 +106,67 @@ export function Table<T>({
     }
   })
 
-  const exportToExcelHandler = () => {
-    const rows = table.getPreFilteredRowModel().rows.map(row => {
+  const processRowsForExcel = (rowsToProcess: Row<T>[]) => {
+    return rowsToProcess.map(row => {
       const rowData: Record<string, unknown> = {}
       table.getVisibleLeafColumns().forEach(column => {
         if (column.id != "actions" && column.columnDef.header) {
-          rowData[String(column.columnDef.header)] = row.getValue(column.id)
+          const headerName = String(column.columnDef.header)
+          const customFormatter = column.columnDef.meta?.setCellToExport
+          let finalValue: unknown
+
+          if (customFormatter) {
+            finalValue = customFormatter(row.original)
+          } else {
+            finalValue = row.getValue(column.id)
+          }
+
+          if (typeof finalValue == "string" && finalValue.startsWith("=")) {
+            let formulaBody = finalValue.substring(1)
+
+            if (functionsKWs.some(kw => formulaBody.toUpperCase().startsWith(kw + "("))) {
+              formulaBody = `_xlfn.${formulaBody}`
+            }
+
+            rowData[headerName] = {
+              f: formulaBody,
+              F: formulaBody
+            }
+          } else {
+            rowData[headerName] = finalValue
+          }
         }
       })
       return rowData
     })
+  }
+
+  const exportToExcelHandler = () => {
+    const isConfigObject = typeof exportToExcel == "object" && exportToExcel != null
+    const mainSheetName = isConfigObject ? (exportToExcel.sheetName || "General") : "Sheet1"
 
     const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.json_to_sheet(rows),
-      "Sheet1"
-    )
+
+    const mainRows = processRowsForExcel(table.getPreFilteredRowModel().rows)
+    const mainWorksheet = XLSX.utils.json_to_sheet(mainRows)
+    XLSX.utils.book_append_sheet(workbook, mainWorksheet, mainSheetName.substring(0, 31))
+
+    if (isConfigObject && exportToExcel.sheets) {
+      const rawFilteredData = table.getPreFilteredRowModel().rows.map(r => r.original)
+
+      exportToExcel.sheets.forEach(sheetConfig => {
+        const extraRows = sheetConfig.getData(rawFilteredData)
+        if (extraRows && extraRows.length > 0) {
+          const extraWorksheet = XLSX.utils.json_to_sheet(extraRows)
+          XLSX.utils.book_append_sheet(
+            workbook,
+            extraWorksheet,
+            sheetConfig.sheetName.substring(0, 31)
+          )
+        }
+      })
+    }
+
     XLSX.writeFile(workbook, `${filename}.xlsx`)
   }
 
@@ -119,7 +184,7 @@ export function Table<T>({
   )
   const exportOptions = (
     <div>
-      {exportToExcel && (
+      {!!exportToExcel && (
         <Button 
           variant="ghost"
           noFocusRing

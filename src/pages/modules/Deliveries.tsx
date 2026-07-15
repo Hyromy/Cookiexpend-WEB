@@ -19,6 +19,14 @@ const STORE_FACTORY_EVENTS = ["store", "factory"] as eventModel[]
 const ESTABLISHMENT_EVENTS = ["establishment"] as eventModel[]
 const ON_EDITABLE_EVENTS = ["updated", "deleted"] as eventAction[]
 
+const statusText: Record<statusName, string> = {
+  pending: "Pendiente",
+  in_progress: "En progreso",
+  completed: "Completado",
+  cancelled: "Cancelado",
+  stopped: "Detenido"
+}
+
 export default function Deliveries() {
   const { data, error, isLoading, request, setData } = useApi<deliveryResponse[]>()
   const requestData = useCallback(() => request(deliveryService.get()), [request])
@@ -161,7 +169,30 @@ export default function Deliveries() {
         </div>
         <Table
           data={filteredData!}
-          exportToExcel
+          exportToExcel={{
+            sheetName: "Repartos",
+            sheets: [
+              {
+                sheetName: "Productos",
+                getData: (ordersList) => {
+                  const detailRows: Record<string, unknown>[] = []
+
+                  ordersList.forEach((order) => {
+                    order.package.forEach((p) => {
+                      detailRows.push({
+                        "ID Pedido": order.id,
+                        "Producto": p.product.name,
+                        "Cantidad": p.quantity,
+                        "SKU": p.product.sku,
+                      })
+                    })
+                  })
+                
+                  return detailRows
+                }
+              }
+            ]
+          }}
           filename={"Repartos" + ((user?.role == "Store manager") && ` - ${user?.establishment?.name}`)}
           columns={[
             { accessorKey: "id", header: "ID" },
@@ -173,7 +204,10 @@ export default function Deliveries() {
             {
               id: "status",
               header: "Estado",
-              cell: ({ row }) => <StatusBadge status={row.original.status.name} />
+              cell: ({ row }) => <StatusBadge status={row.original.status.name} />,
+              meta: {
+                setCellToExport: row => statusText[row.status.name]
+              }
             },
             {
               id: "products",
@@ -200,6 +234,9 @@ export default function Deliveries() {
                     </Dropdown>
                   </>
                 )
+              },
+              meta: {
+                setCellToExport: row => row.package.flatMap(p => Array(p.quantity).fill(p)).length
               }
             },
             {
@@ -480,13 +517,6 @@ function StatusBadge({ status }: { status: statusName }) {
     completed: "bg-success/30",
     cancelled: "bg-danger/30",
     stopped: "bg-danger/30"
-  }
-  const statusText = {
-    pending: "Pendiente",
-    in_progress: "En progreso",
-    completed: "Completado",
-    cancelled: "Cancelado",
-    stopped: "Detenido"
   }
 
   return (

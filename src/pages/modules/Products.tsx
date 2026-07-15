@@ -80,7 +80,10 @@ export default function Products() {
             {
               accessorKey: "price",
               header: "Precio",
-              cell: ({ getValue }) => `$${getValue()}`
+              cell: ({ getValue }) => `$${getValue()}`,
+              meta: {
+                setCellToExport: row => `$${row.price}`
+              }
             },
             {
               accessorKey: "img",
@@ -95,7 +98,10 @@ export default function Products() {
                     setIsImageOpen(true)
                   }}
                 />
-              )
+              ),
+              meta: {
+                setCellToExport: row => row.img ? `=IMAGE("${row.img}")` : "-"
+              }
             },
             {
               id: "actions",

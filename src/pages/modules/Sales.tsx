@@ -71,7 +71,31 @@ export default function Sales() {
         </div>
         <Table
           data={data!}
-          exportToExcel
+          exportToExcel={{
+            sheetName: "Ventas",
+            sheets: [
+              {
+                sheetName: "Productos vendidos",
+                getData: data => {
+                  const result: Record<string, unknown>[] = []
+
+                  data.forEach(sale => {
+                    sale.details.forEach(detail => {
+                      result.push({
+                        "ID Venta": sale.id,
+                        "SKU": detail.product.sku,
+                        "Producto": detail.product_name,
+                        "Cantidad": detail.quantity,
+                        "Precio unitario": detail.price,
+                      })
+                    })
+                  })
+
+                  return result
+                }
+              }
+            ]
+          }}
           filename="Ventas"
           columns={[
             { accessorKey: "id", header: "ID" },
@@ -79,6 +103,7 @@ export default function Sales() {
               ? [{ accessorKey: "store.establishment.name", header: "Expendio" }]
               : []
             ),
+            { accessorKey: "seller_name", header: "Cajero" },
             {
               accessorKey: "details",
               header: "Productos vendidos",
@@ -104,12 +129,18 @@ export default function Sales() {
                     </Dropdown>
                   </>
                 )
+              },
+              meta: {
+                setCellToExport: row => row.details.flatMap(p => Array(p.quantity).fill(p)).length
               }
             },
             { 
               accessorKey: "date",
               header: "Fecha",
-              cell: ({ getValue }) => parseDate(getValue() as string)
+              cell: ({ getValue }) => parseDate(getValue() as string),
+              meta: {
+                setCellToExport: row => parseDate(row.date)
+              }
             },
             {
               accessorKey: "total",

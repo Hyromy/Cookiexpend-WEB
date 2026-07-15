@@ -8,7 +8,6 @@ import type { ApiRequestError, establishmentResponse, profileRequest, profileRes
 import { Dialog, Modal } from "../../components/Modal"
 import { Form, SelectField, TextField, type SelectFieldProps } from "../../components/Form"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
-import useAuth from "../../hooks/useAuth"
 import { EMAIL_REGEX, USERNAME_REGEX } from "../../constants/regex"
 import useToast from "../../hooks/useToast"
 
@@ -19,15 +18,12 @@ export default function Users() {
   const [editingProfile, setEditingProfile] = useState<profileResponse | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [deletingProfile, setDeletingProfile] = useState<profileResponse | null>(null)
-  const { user } = useAuth()
 
   useEffect(() => { requestData() }, [requestData])
   useEvent({
     from: ["profile"],
     cb: useEventOnCUD<profileResponse>(setData)
   })
-
-  const profiles = useMemo(() => data?.filter(p => p.user.id != user?.id) || [], [data, user?.id])
 
   const openCreate = () => {
     setEditingProfile(null)
@@ -54,7 +50,7 @@ export default function Users() {
   return (
     <>
       <StateGate
-        data={profiles}
+        data={data}
         error={error}
         loading={isLoading}
         emptyProps={{ title: "Usuarios", content: btnAdd }}
@@ -64,7 +60,7 @@ export default function Users() {
           {btnAdd}
         </div>
         <Table
-          data={profiles}
+          data={data!}
           exportToExcel
           filename="Usuarios"
           columns={[
@@ -75,7 +71,18 @@ export default function Users() {
             { 
               accessorKey: "role",
               header: "Rol",
-              cell: ({ getValue }) => getValue() == "factory" ? "R. Planta" : "R. Expendio"
+              cell: ({ getValue }) => getValue() == "factory" ? "R. Planta" : "R. Expendio",
+              meta: {
+                setCellToExport: row => row.role == "factory" ? "Responsable de planta" : "Responsable de expendio"
+              }
+            },
+            {
+              id: "establishment",
+              header: "Establecimiento",
+              cell: ({ row }) => row.original[row.original.role]?.establishment.name,
+              meta: {
+                setCellToExport: row => row[row.role]?.establishment.name
+              }
             },
             {
               id: "actions",
