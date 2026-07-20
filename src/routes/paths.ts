@@ -1,6 +1,7 @@
 export const PATHS = {
   login: "/",
   recover_account: "/recuperar-cuenta",
+  reset_password: "/restablecer-acceso",
   panel: "/panel",
   products: "/productos",
   users: "/usuarios",
@@ -9,4 +10,5 @@ export const PATHS = {
   factories: "/plantas",
   deliveries: "/repartos",
   inventories: "/inventarios",
+  loadingPanel: "/cargando"
 } as const

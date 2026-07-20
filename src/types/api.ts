@@ -1,6 +1,32 @@
+export type ApiRequestError = {
+  message: string
+  status?: number
+  data?: unknown
+  isNetworkError: boolean
+}
+
 export type loginRequest = {
   email: string
   password: string
+}
+
+export type askResetPasswordRequest = {
+  email: string
+}
+
+export type resetPasswordResponse = {
+  success: boolean
+  message: string
+}
+
+export type confirmResetPasswordRequest = {
+  password: string
+  token: string
+}
+
+export type confirmResetPasswordResponse = {
+  success: boolean
+  message: string
 }
 
 export type sessionResponse = {
@@ -103,10 +129,37 @@ export type productRequest = {
   name: string
   price: string
   img?: File
+  description?: string
+  badge?: string
+  category?: string | number
+  presentation?: string | number
+  variants?: Array<string | number>
 }
 
-export type productResponse = Omit<productRequest, "img"> & itemResponse & eventResponse & {
+export type productVariantResponse = itemResponse & {
+  slug: string
+  name: string
+}
+
+export type productResponse = Omit<productRequest, "img" | "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
+  slug: string
   img: string | null
+  category: categoryResponse | null
+  presentation: presentationResponse | null
+  variants: productVariantResponse[]
+}
+
+// Note: Category/Presentation are only exposed via `{id, label, order[, logo]}` by
+// their backend serializers (apps/catalog/serializers.py) — no audit fields.
+export type categoryResponse = itemResponse & {
+  label: string
+  order: number
+  logo: string | null
+}
+
+export type presentationResponse = itemResponse & {
+  label: string
+  order: number
 }
 
 export type packageRequest = {
@@ -121,7 +174,6 @@ export type packageResponse = {
 
 export type deliveryRequest = {
   store: number | string
-  factory: number | string
   package: packageRequest[]
 }
 
@@ -155,7 +207,7 @@ export type inventoryResponse = itemResponse & eventResponse & {
 }
 
 export type saleRequest = {
-  store: string | number
+  received: string
   products: Array<{
     product: string | number
     quantity: number
@@ -166,6 +218,13 @@ export type saleResponse = itemResponse & eventResponse & {
   date: string
   store: storeResponse
   total: string
+  received: string
+  returned: string
+  seller: {
+    id: number
+    name: string
+  }
+  seller_name: string
   details: Array<saleDetailResponse>
   payments: Array<paymentResponse>
 }
@@ -174,6 +233,7 @@ export type saleDetailResponse = itemResponse & eventResponse & {
   price: string
   quantity: number
   product: productResponse
+  product_name: string
 }
 
 export type paymentResponse = itemResponse & eventResponse & {

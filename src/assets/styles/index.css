@@ -13,7 +13,23 @@
     --color-card: var(--card);
 
     --color-muted: rgb(128, 128, 128);
-    --spacing-header-h: 3rem;
+    --spacing-header-h: 3.25rem;
+
+    --color-success: var(--success);
+    --color-success-muted: var(--success-muted);
+    --color-success-fg: var(--success-fg);
+
+    --color-info: var(--info);
+    --color-info-muted: var(--info-muted);
+    --color-info-fg: var(--info-fg);
+
+    --color-danger: var(--danger);
+    --color-danger-muted: var(--danger-muted);
+    --color-danger-fg: var(--danger-fg);
+
+    --color-warning: var(--warning);
+    --color-warning-muted: var(--warning-muted);
+    --color-warning-fg: var(--warning-fg);
 }
 
 :root {
@@ -27,6 +43,22 @@
     --secondary-fg: var(--fg);
 
     --card: rgb(240, 240, 240);
+
+    --success: rgb(16, 124, 65);
+    --success-muted: rgba(16, 124, 65, 0.1);
+    --success-fg: rgb(248, 248, 248);
+
+    --info: rgb(0, 102, 204);
+    --info-muted: rgba(0, 102, 204, 0.1);
+    --info-fg: rgb(248, 248, 248);
+
+    --danger: rgb(220, 38, 38);
+    --danger-muted: rgba(220, 38, 38, 0.1);
+    --danger-fg: rgb(248, 248, 248);
+
+    --warning: rgb(217, 119, 6);
+    --warning-muted: rgba(217, 119, 6, 0.1);
+    --warning-fg: rgb(248, 248, 248);
 }
 
 .dark {
@@ -40,6 +72,22 @@
     --secondary-fg: var(--fg);
 
     --card: rgb(8, 8, 8);
+
+    --success: rgb(34, 197, 94);
+    --success-muted: rgba(34, 197, 94, 0.15);
+    --success-fg: rgb(0, 0, 0);
+
+    --info: rgb(59, 130, 246);
+    --info-muted: rgba(59, 130, 246, 0.15);
+    --info-fg: rgb(0, 0, 0);
+
+    --danger: rgb(239, 68, 68);
+    --danger-muted: rgba(239, 68, 68, 0.15);
+    --danger-fg: rgb(0, 0, 0);
+
+    --warning: rgb(245, 158, 11);
+    --warning-muted: rgba(245, 158, 11, 0.15);
+    --warning-fg: rgb(0, 0, 0);
 }
 
 @layer base {

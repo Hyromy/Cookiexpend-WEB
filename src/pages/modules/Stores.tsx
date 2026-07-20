@@ -1,19 +1,26 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
-import type { establishmentRequest, establishmentResponse, storeResponse } from "../../types/api"
+import type { ApiRequestError, establishmentRequest, establishmentResponse, storeResponse } from "../../types/api"
 import { storeService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { Form, TextField } from "../../components/Form"
-import { Button } from "../../components/Button"
+import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
-import { Pencil, Trash } from "lucide-react"
 import type { eventAction, eventData, eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
+import useToast from "../../hooks/useToast"
 
 const STORE_EVENTS = ["store"] as eventModel[]
 const ESTABLISHMENT_EVENTS = ["establishment"] as eventModel[]
 const ON_EDITABLE_EVENTS = ["updated", "deleted"] as eventAction[]
+
+const STORE_REQUIRED_ARGS = [
+  "name",
+  "municipality",
+  "neighborhood",
+  "street",
+] as (keyof establishmentRequest)[]
 
 export default function Stores() {
   const { data, error, isLoading, request, setData } = useApi<storeResponse[]>()
@@ -47,7 +54,14 @@ export default function Stores() {
     setIsDialogOpen(true)
   }
   
-  const btnAdd = <Button onClick={openCreate}>Agregar Planta</Button>
+  const btnAdd = (
+    <Button
+      onClick={openCreate}
+      className="px-6"
+    >
+      Agregar Expendio
+    </Button>
+  )
 
   return (
     <>
@@ -58,7 +72,9 @@ export default function Stores() {
         emptyProps={{ title: "Expendios", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        {btnAdd}
+        <div className="mb-2">
+          {btnAdd}
+        </div>
         <Table
           data={data!}
           exportToExcel
@@ -73,10 +89,18 @@ export default function Stores() {
               id: "actions",
               header: "Acciones",
               cell: ({ row }) => (
-                <>
-                  <Button onClick={() => openEdit(row.original)}><Pencil /></Button>
-                  <Button onClick={() => openDelete(row.original)}><Trash /></Button>
-                </>
+                <div className="flex gap-2">
+                  <ActionButton
+                    variant="warning"
+                    icon="pencil"
+                    cb={() => openEdit(row.original)}
+                  />
+                  <ActionButton
+                    variant="danger"
+                    icon="trash"
+                    cb={() => openDelete(row.original)}
+                  />
+                </div>
               )
             }
           ]}
@@ -111,12 +135,27 @@ type StoreFormProps = {
 }
 function StoreForm({ store, onDone }: StoreFormProps) {
   const { isLoading, request, setData } = useApi<storeResponse>()
+  const { addToast } = useToast()
 
   useEffect(() => { if (store) setData(store) }, [store, setData])
 
+  const submitErrorHandler = (err: ApiRequestError) => {
+    const errData = err.data as Record<string, Record<string, string[]>>
+    const thisIncludes = (str: string) => (i: string) => i.includes(str)
+    
+    if (errData?.establishment?.name?.find(thisIncludes("already exists"))) {
+      addToast("Ya existe una planta o expendio con ese nombre", "warning")
+      return
+    }
+  
+    addToast("Error al guardar el expendio, por favor intente más tarde", "error")
+  }
+
   const onSubmitHandler = (data: establishmentRequest) => {
-    if (Object.values(data).some(v => !v)) {
-      alert("Por favor llena todos los campos")
+    clearData(data)
+    const validation = validate(data)
+    if (validation != true) {
+      addToast(validation, "warning")
       return
     }
 
@@ -124,47 +163,74 @@ function StoreForm({ store, onDone }: StoreFormProps) {
       ? request(storeService.upd(store.id, { establishment: data }))
       : request(storeService.new({ establishment: data }))
     
-    ).then((response) => {
-      if (!response) return
-      alert("Expendio creado con exito!")
+    ).then(() => {
+      addToast(`Expendio ${store ? "actualizado" : "creado"} con éxito`, "success")
       onDone?.()
 
-    }).catch((error) => {
-      console.error(error)
-      alert("Error al crear el expendio")
-    })
+    }).catch((error) => submitErrorHandler(error))
   }
+
+  const dangerChars = /[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g
 
   return (
     <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <TextField
-        name="municipality"
-        placeholder="Municipio"
-        defaultValue={store?.establishment.municipality}  
-      />
-      <TextField
-        name="name"
-        placeholder="Nombre"
-        defaultValue={store?.establishment.name}  
-      />
-      <TextField
-        name="neighborhood"
-        placeholder="Colonia"
-        defaultValue={store?.establishment.neighborhood}  
-      />
-      <TextField
-        name="street"
-        placeholder="Calle"
-        defaultValue={store?.establishment.street}  
-      />
-      <TextField
-        name="number"
-        placeholder="Número"
-        defaultValue={store?.establishment.number}  
-      />
-      <Button type="submit" disabled={isLoading}>
-        Crear nuevo expendio
-      </Button>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="name"
+          label="Nombre"
+          defaultValue={store?.establishment.name}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="municipality"
+          label="Municipio"
+          defaultValue={store?.establishment.municipality}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="neighborhood"
+          label="Colonia"
+          defaultValue={store?.establishment.neighborhood}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          cleanRegex={dangerChars}
+          required
+          name="street"
+          label="Calle"
+          defaultValue={store?.establishment.street}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanRegex={/\D/}
+          name="number"
+          label="Número"
+          defaultValue={store?.establishment.number}
+        />
+      </div>
+      <div className="flex justify-center">
+        <Button
+          className="px-6"
+          type="submit"
+          disabled={isLoading}
+        >
+          Guardar
+        </Button>
+      </div>
     </Form>
   )
 }
@@ -182,32 +248,19 @@ function DeleteDialog({
   setStore
 }: DeleteDialogProps) {
   const { isLoading, request } = useApi()
-
-  /* useEffect(() => {
-    if (submitted && data != null) {
-      alert("Expendio eliminado con exito!")
-      setStore(null)
-      setIsOpen(false)
-      setSubmitted(false)
-    }
-    if (error) {
-      console.error(error)
-      alert("Error al eliminar el expendio")
-      setSubmitted(false)
-    }
-  }, [data, error, setStore, setIsOpen, submitted]) */
+  const { addToast } = useToast()
 
   const requestDelete = () => {
     if (!store) return
     request(storeService.del(store.id))
       .then(() => {
-        alert("Expendio eliminado con exito!")
         setStore(null)
         setIsOpen(false)
+        addToast("Expendio eliminado con éxito", "success")
       })
       .catch((error) => {
         console.error(error)
-        alert("Error al eliminar el expendio")
+        addToast("Error al eliminar el expendio", "error")
       })
   }
 
@@ -244,4 +297,22 @@ const establishmentEvents = (e: eventData, setData: Dispatch<SetStateAction<stor
         return prev.filter(f => f.establishment.id != data.id)
       })
   }
+}
+
+const clearData = (data: establishmentRequest) => {
+  STORE_REQUIRED_ARGS.forEach(key => {
+    if (data[key]) {
+      data[key] = data[key].trim().replace(/\s+/g, " ")
+    }
+  })
+
+  if (!data.number?.trim()) delete data.number
+}
+
+const validate = (data: establishmentRequest): string | true => {
+  if (STORE_REQUIRED_ARGS.some(k => !data[k])) {
+    return "Por favor, complete todos los campos obligatorios."
+  }
+
+  return true
 }

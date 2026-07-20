@@ -4,7 +4,36 @@ import { SidebarProvider } from "./contexts/Sidebar/SidebarProvider"
 import { AuthProvider } from "./contexts/Auth/AuthProvider"
 import { routes } from "./routes/routes"
 import type { AppRoute } from "./types/route"
-import { Suspense } from "react"
+import { Suspense, type ReactNode } from "react"
+import { ToastProvider } from "./contexts/Toast/ToastProvider"
+
+export default function App() {
+  return (
+    <ContextProviders>
+      <BrowserRouter>
+        <Suspense>
+          <Routes>
+            {renderRoutes(routes)}
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </ContextProviders>
+  )
+}
+
+function ContextProviders({ children }: { children: ReactNode }) {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <SidebarProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </SidebarProvider>
+      </ThemeProvider>
+    </AuthProvider>
+  )
+}
 
 const renderRoutes = (routeList: AppRoute[]) => (
   routeList.map((route, index) => {
@@ -27,21 +56,3 @@ const renderRoutes = (routeList: AppRoute[]) => (
     )
   })
 )
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <ThemeProvider>
-        <SidebarProvider>
-          <BrowserRouter>
-            <Suspense>
-              <Routes>
-                {renderRoutes(routes)}
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </SidebarProvider>
-      </ThemeProvider>
-    </AuthProvider>
-  )
-}

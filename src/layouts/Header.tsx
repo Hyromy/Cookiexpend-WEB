@@ -5,28 +5,36 @@ import useAuth from "../hooks/useAuth"
 import Dropdown from "../components/Dropdown"
 import useApi from "../hooks/useApi"
 import { authService } from "../services/cookiexpend"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { PATHS } from "../routes/paths"
-import { Modal } from "../components/Modal"
+import { Dialog, Modal } from "../components/Modal"
 import { useState } from "react"
 import { Form, TextField } from "../components/Form"
 import type { meRequest, meResponse } from "../types/api"
+import { MODULE_ROUTES } from "../routes/modules"
+import clsx from "clsx"
+import useToast from "../hooks/useToast"
 
 export default function Header() {
   const { hasSidebar, setActiveSidebar, activeSidebar } = useSidebar()
 
+  const hideOnClasses = "lg:hidden"
   return (
-    <header className="sticky top-0 flex flex-col bg-card">
+    <header className="sticky top-0 flex flex-col bg-card z-50">
       <section className="border-b border-muted p-1 h-header-h">
         <div className="flex mx-auto w-full max-w-7xl items-center justify-between">
-          <div>
+          <div className="flex items-center gap-2">
             {hasSidebar && (
-              <Button
-                className="lg:hidden p-1 -ml-1 rounded-md"
-                onClick={() => setActiveSidebar(activeSidebar != "navigation" ? "navigation" : null)}
-              >
-                <Menu />
-              </Button>
+              <>
+                <Button
+                  className={clsx("p-1 rounded-md", hideOnClasses)}
+                  onClick={() => setActiveSidebar(activeSidebar != "navigation" ? "navigation" : null)}
+                  variant="ghost"
+                >
+                  <Menu />
+                </Button>
+                <CurrentModuleLabel className={clsx("text-lg", hideOnClasses)} />
+              </>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -39,11 +47,25 @@ export default function Header() {
   )
 }
 
+function CurrentModuleLabel({ className }: { className?: string }) {
+  const location = useLocation()
+
+  return (
+    <span className={className}>
+      {MODULE_ROUTES.find(module => (
+        location.pathname.endsWith(module.path)
+      ))?.label}
+    </span>
+  )
+}
+
 function Profile() {
   const { user, refresh } = useAuth()
   const { request } = useApi()
   const navigate = useNavigate()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const { addToast } = useToast()
   
   const logoutHandler = () => {
     request(authService.logout())
@@ -52,7 +74,7 @@ function Profile() {
         refresh()
       })
       .catch(err => {
-        alert("Error al cerrar sesión")
+        addToast("Error al cerrar sesión", "error")
         console.error(err)
       })
   }
@@ -60,17 +82,22 @@ function Profile() {
   return (
     <>
       <Dropdown
+        align="right"
         options={[
           <Button
-            className="w-full flex flex-row gap-2"
+            noFocusRing
+            variant="ghost"
+            className="w-full flex flex-row gap-2 hover:bg-bg/90"
             onClick={() => setIsModalOpen(true)}
           >
             <User2 />
             Perfil
           </Button>,
           <Button
-            className="w-full flex flex-row gap-2"
-            onClick={logoutHandler}
+            noFocusRing
+            variant="ghost"
+            className="w-full flex flex-row gap-2 hover:bg-bg/90 text-red-500"
+            onClick={() => setIsDialogOpen(true)}
           >
             <LogOut />
             Cerrar sesión
@@ -87,70 +114,116 @@ function Profile() {
       >
         <ProfileForm
           user={user!}
-          refresh={refresh}
-          onDone={() => setIsModalOpen(false)}
+          onDone={(wasUpdated) => {
+            setIsModalOpen(false)
+            if (wasUpdated) {
+              navigate(PATHS.login)
+              refresh()
+            }
+          }}
         />
       </Modal>
+      <Dialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        title="Cerrar sesión"
+        onConfirm={logoutHandler}
+      >
+        ¿Estás seguro de que deseas cerrar sesión?
+      </Dialog>
     </>
   )
 }
 
 type ProfileFormProps = {
   user: meResponse
-  refresh: () => Promise<void>
-  onDone: () => void
+  onDone: (wasUpdated: boolean) => void
 }
 function ProfileForm({
   user,
-  refresh,
   onDone
 }: ProfileFormProps) {
   const { request, isLoading } = useApi()
+  const { addToast } = useToast()
 
   const submitHandler = (data: meRequest) => {
     const validation = validateData(data)
     if (validation != true) {
-      alert(validation)
+      addToast(validation, "warning")
       return
     }
 
     request(authService.upd(data))
     .then(() => {
-      alert("Perfil actualizado correctamente")
-      refresh()
-      onDone()
+      addToast("Perfil actualizado correctamente" + (data.password ? ". Inicia sesión nuevamente." : ""), "success")
+      onDone(!!data.password)
     })
     .catch(err => {
-      alert("Error al actualizar el perfil")
+      addToast("Error al actualizar el perfil", "error")
       console.error(err)
     })
   }
 
   return (
     <Form onSubmit={submitHandler} className="flex flex-col gap-4">
-      <TextField
-        name="first_name"
-        placeholder="Nombre"
-        defaultValue={user?.first_name}
-      />
-      <TextField
-        name="last_name"
-        placeholder="Apellido"
-        defaultValue={user?.last_name}
-      />
-      <TextField
-        name="email"
-        placeholder="Correo electrónico"
-        defaultValue={user?.email}
-      />
-      <TextField
-        name="password"
-        placeholder="Contraseña"
-        type="password"
-      />
-      <Button type="submit" disabled={isLoading}>
-        Guardar cambios
-      </Button>
+      <div>
+        <TextField
+          name=""
+          label="Establecimiento asignado"
+          defaultValue={user?.establishment?.name}
+          readonly
+          disabled
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <TextField
+            cleanEmpty
+            required
+            name="first_name"
+            label="Nombre"
+            defaultValue={user?.first_name}
+          />
+        </div>
+        <div>
+          <TextField
+            cleanEmpty
+            required
+            name="last_name"
+            label="Apellido"
+            defaultValue={user?.last_name}
+          />
+        </div>
+      </div>
+      <div>
+        <TextField
+          cleanEmpty
+          required
+          name="email"
+          label="Correo electrónico"
+          defaultValue={user?.email}
+        />
+      </div>
+      <div>
+        <TextField
+          cleanRegex={/\s/}
+          name="password"
+          label="Contraseña"
+          type="password"
+        />
+        <div className="text-sm text-muted p-2 px-8 text-center">
+          Al ingresar una nueva contraseña, se cerrará la sesión actual y deberás iniciar sesión nuevamente.
+        </div>
+      </div>
+      <div className="flex justify-center">
+        <Button
+          className="px-6"
+          type="submit"
+          disabled={isLoading}
+        >
+          Guardar cambios
+        </Button>
+      </div>
     </Form>
   )
 }

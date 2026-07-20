@@ -81,7 +81,10 @@ export function ErrorState({
       message={message}
       content={
         onRetry && (
-          <Button onClick={onRetry}>
+          <Button
+            className="px-6"
+            onClick={onRetry}
+          >
             {retryLabel}
           </Button>
         )
@@ -113,7 +116,7 @@ export function EmptyState({
 
 type StateGateProps = {
   loading: boolean
-  error: Error | null
+  error: unknown | null
   data: unknown | null
   
   children: ReactNode
@@ -163,7 +166,6 @@ export function StateGate({
   }
 
   if (error) {
-    console.error(error)
     return <ErrorState {...errorProps} />
   }
 

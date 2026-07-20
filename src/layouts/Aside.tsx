@@ -11,6 +11,7 @@ export default function Aside({closeCanvas}: {closeCanvas?: () => void}) {
   const allowedModules = MODULE_ROUTES.filter(module => {
     if (!module.allowRoles) return true
     if (!user) return false
+    if (module.path == PATHS.loadingPanel) return false
     return module.allowRoles.includes(user.role!)
   })
 
@@ -37,7 +38,7 @@ export default function Aside({closeCanvas}: {closeCanvas?: () => void}) {
                   {module.icon}
                 </span>
                 <span className={clsx("capitalize transition-all", isActive && "text-primary font-bold")}>
-                  {module.label}
+                  {displayModuleLabel(user?.role, module.label)}
                 </span>
               </>
             )}
@@ -46,4 +47,11 @@ export default function Aside({closeCanvas}: {closeCanvas?: () => void}) {
       </div>
     </aside>
   )
+}
+
+const displayModuleLabel = (userRole: string | undefined, moduleLabel: string): string => {
+  if (userRole == "Store manager" && moduleLabel == "Inventarios") {
+    return "Inventario"
+  }
+  return moduleLabel
 }
