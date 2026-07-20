@@ -73,7 +73,22 @@ export default function Products() {
         </div>
         <Table
           data={data!}
-          exportToExcel
+          exportToExcel={{
+            sheetName: "Productos",
+            sheets: [{
+              sheetName: "Variantes",
+              // Variant links are one level deep only (VariantSerializer on the
+              // backend returns id/slug/name, never nested variants), so this
+              // can't recurse.
+              getData: (products) => products.flatMap(p => (
+                p.variants.map(v => ({
+                  "Producto SKU": p.sku,
+                  "Producto": p.name,
+                  "Variante": v.name,
+                }))
+              ))
+            }]
+          }}
           filename="Productos"
           columns={[
             { accessorKey: "sku", header: "SKU" },
@@ -132,6 +147,9 @@ export default function Products() {
                     {variants.length}
                   </Dropdown>
                 )
+              },
+              meta: {
+                setCellToExport: row => row.variants.map(v => v.name).join(", ") || "-"
               }
             },
             {
@@ -159,6 +177,7 @@ export default function Products() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={(editingProduct ? "Editar" : "Agregar") + " producto"}
+        size="xl"
       >
         <ProductForm
           product={editingProduct}
