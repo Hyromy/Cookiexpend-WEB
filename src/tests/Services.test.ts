@@ -16,6 +16,9 @@ const mockClient = {
   patch: vi.fn(),
   delete: vi.fn(),
   interceptors: {
+    request: {
+      use: vi.fn(),
+    },
     response: {
       use: vi.fn((onFulfilled, onRejected) => {
         mockResponseHandlers = { onFulfilled, onRejected }
