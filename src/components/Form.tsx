@@ -560,40 +560,48 @@ export function MultiSelectField({
           ))}
         </div>
       )}
-      <div className="relative">
-        <input
-          type="text"
-          disabled={disabled}
-          value={query}
-          onFocus={() => setIsOpen(true)}
-          onInput={(e) => { setQuery(e.currentTarget.value); setIsOpen(true) }}
-          placeholder={placeholder}
-          className={clsx(
-            "block w-full rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 outline-gray-300 transition-all duration-150",
-            isOpen ? "outline-2 -outline-offset-2 outline-primary" : "focus:outline-2 focus:-outline-offset-2 focus:outline-primary",
-            disabled && "cursor-not-allowed opacity-50"
-          )}
-        />
-        <ul
-          className={clsx(
-            "absolute z-50 mt-1.5 max-h-48 w-full overflow-auto rounded-md p-1 text-base sm:text-sm/6 shadow-xl focus:outline-none",
-            "bg-initial/75 backdrop-blur-2xl transition-all duration-300 ease-out origin-top outline outline-neutral-500/30",
-            isOpen && availableOptions.length > 0
-              ? "opacity-100 scale-100 pointer-events-auto"
-              : "opacity-0 scale-95 pointer-events-none -translate-y-1"
-          )}
-        >
-          {availableOptions.map(opt => (
-            <li
-              key={opt.value}
-              onClick={() => add(opt.value)}
-              className="relative cursor-pointer select-none py-1.5 px-3 rounded-sm hover:bg-neutral-500/10 transition-colors"
-            >
-              {opt.label}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <input
+        type="text"
+        disabled={disabled}
+        value={query}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setIsOpen(false)}
+        onInput={(e) => { setQuery(e.currentTarget.value); setIsOpen(true) }}
+        placeholder={placeholder}
+        className={clsx(
+          "block w-full rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 outline-gray-300 transition-all duration-150",
+          isOpen ? "outline-2 -outline-offset-2 outline-primary" : "focus:outline-2 focus:-outline-offset-2 focus:outline-primary",
+          disabled && "cursor-not-allowed opacity-50"
+        )}
+      />
+      {/*
+        Deliberately NOT `position: absolute` — an overlaid dropdown can float on
+        top of whatever sits below it in the form (e.g. the submit button), making
+        it unclickable. Growing in normal flow instead means an open dropdown only
+        ever pushes later content down, so it can never cover it.
+      */}
+      <ul
+        className={clsx(
+          "w-full overflow-auto rounded-md text-base sm:text-sm/6 focus:outline-none",
+          "bg-initial/75 backdrop-blur-2xl transition-all duration-200 ease-out outline-neutral-500/30",
+          isOpen && availableOptions.length > 0
+            ? "max-h-40 mt-1.5 p-1 opacity-100 outline shadow-xl"
+            : "max-h-0 opacity-0"
+        )}
+      >
+        {availableOptions.map(opt => (
+          <li
+            key={opt.value}
+            // onMouseDown (not onClick) fires before the input's onBlur, and
+            // preventDefault stops that blur entirely so selecting an option
+            // doesn't close the dropdown — only a click truly outside it does.
+            onMouseDown={(e) => { e.preventDefault(); add(opt.value) }}
+            className="relative cursor-pointer select-none py-1.5 px-3 rounded-sm hover:bg-neutral-500/10 transition-colors"
+          >
+            {opt.label}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
