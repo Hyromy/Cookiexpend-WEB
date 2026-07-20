@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { X } from "lucide-react"
 import useApi from "../../hooks/useApi"
-import type { ApiRequestError, categoryResponse, presentationResponse, productRequest, productResponse } from "../../types/api"
-import { categoryService, presentationService, productService } from "../../services/cookiexpend"
+import type { ApiRequestError, categoryResponse, presentationResponse, productImageResponse, productRequest, productResponse } from "../../types/api"
+import { categoryService, presentationService, productImageService, productService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
 import { FileField, Form, MultiSelectField, SelectField, TextAreaField, TextField, type SelectFieldProps } from "../../components/Form"
@@ -204,6 +205,7 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   const [variantIds, setVariantIds] = useState<string[]>(
     () => product?.variants.map(v => v.id.toString()) ?? []
   )
+  const [images, setImages] = useState<productImageResponse[]>(() => product?.images ?? [])
 
   useEffect(() => { if (product) setData(product) }, [product, setData])
 
@@ -252,82 +254,98 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   }
 
   return (
-    <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-      <div>
-        <TextField
-          cleanRegex={/[^a-zA-Z0-9-]/}
-          maxLen={18}
-          required
-          name="sku"
-          label="SKU"
-          defaultValue={product?.sku}
-        />
-      </div>
-      <div>
-        <TextField
-          required
-          cleanRegex={/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g}
-          name="name"
-          label="Nombre"
-          defaultValue={product?.name}  
-        />
-      </div>
-      <div>
-        <TextField
-          required
-          cleanRegex={/[^0-9.]|(?<=\..*)\./g}
-          name="price"
-          label="Precio"
-          defaultValue={product?.price}
-          placeholder="0.00"
-        />
-      </div>
-      <div>
-        <FileField
-          label="Imagen"
-          required={!product}
-          name="img"
-          value={product?.img}
-        />
-      </div>
-      <div>
-        <TextField
-          maxLen={50}
-          name="badge"
-          label="Etiqueta"
-          placeholder="Ej. Nuevo, Oferta"
-          defaultValue={product?.badge}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <CategorySelectField defaultValue={product?.category?.id.toString()} />
-        <PresentationSelectField defaultValue={product?.presentation?.id.toString()} />
-      </div>
-      <div>
-        <TextAreaField
-          maxLen={500}
-          name="description"
-          label="Descripción"
-          defaultValue={product?.description}
-        />
-      </div>
-      <div>
-        <VariantsField
-          excludeId={product?.id}
-          selected={variantIds}
-          onChange={setVariantIds}
-        />
-      </div>
-      <div className="flex justify-center">
-        <Button
-          className="px-6"
-          type="submit"
-          disabled={isLoading}
-        >
-          Guardar
-        </Button>
-      </div>
-    </Form>
+    <>
+      <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
+        <div>
+          <TextField
+            cleanRegex={/[^a-zA-Z0-9-]/}
+            maxLen={18}
+            required
+            name="sku"
+            label="SKU"
+            defaultValue={product?.sku}
+          />
+        </div>
+        <div>
+          <TextField
+            required
+            cleanRegex={/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g}
+            name="name"
+            label="Nombre"
+            defaultValue={product?.name}
+          />
+        </div>
+        <div>
+          <TextField
+            required
+            cleanRegex={/[^0-9.]|(?<=\..*)\./g}
+            name="price"
+            label="Precio"
+            defaultValue={product?.price}
+            placeholder="0.00"
+          />
+        </div>
+        <div>
+          <FileField
+            label="Imagen principal"
+            required={!product}
+            name="img"
+            value={product?.img}
+          />
+        </div>
+        <div>
+          <TextField
+            maxLen={50}
+            name="badge"
+            label="Etiqueta"
+            placeholder="Ej. Nuevo, Oferta"
+            defaultValue={product?.badge}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <CategorySelectField defaultValue={product?.category?.id.toString()} />
+          <PresentationSelectField defaultValue={product?.presentation?.id.toString()} />
+        </div>
+        <div>
+          <TextAreaField
+            maxLen={500}
+            name="description"
+            label="Descripción"
+            defaultValue={product?.description}
+          />
+        </div>
+        <div>
+          <VariantsField
+            excludeId={product?.id}
+            selected={variantIds}
+            onChange={setVariantIds}
+          />
+        </div>
+        <div className="flex justify-center">
+          <Button
+            className="px-6"
+            type="submit"
+            disabled={isLoading}
+          >
+            Guardar
+          </Button>
+        </div>
+      </Form>
+      {product
+        ? (
+          <ProductImagesField
+            productId={product.id}
+            images={images}
+            onChange={setImages}
+          />
+        )
+        : (
+          <p className="mt-4 text-sm opacity-60 text-center">
+            Podrás agregar imágenes adicionales después de guardar el producto.
+          </p>
+        )
+      }
+    </>
   )
 }
 
@@ -403,6 +421,68 @@ function VariantsField({ excludeId, selected, onChange }: VariantsFieldProps) {
       selected={selected}
       onChange={onChange}
     />
+  )
+}
+
+type ProductImagesFieldProps = {
+  productId: number
+  images: productImageResponse[]
+  onChange: (images: productImageResponse[]) => void
+}
+function ProductImagesField({ productId, images, onChange }: ProductImagesFieldProps) {
+  const { isLoading, request } = useApi<productImageResponse>()
+  const { addToast } = useToast()
+  const [fileInputKey, setFileInputKey] = useState(0)
+
+  const handleAdd = (file: File | null) => {
+    if (!file) return
+
+    request(productImageService.new({ product: productId, img: file, order: images.length }))
+      .then((newImage) => {
+        onChange([...images, newImage!])
+        setFileInputKey(k => k + 1)
+      })
+      .catch(() => addToast("Error al agregar la imagen, por favor intente más tarde", "error"))
+  }
+
+  const handleRemove = (imageId: number) => {
+    request(productImageService.del(imageId))
+      .then(() => onChange(images.filter(i => i.id != imageId)))
+      .catch(() => addToast("Error al eliminar la imagen, por favor intente más tarde", "error"))
+  }
+
+  return (
+    <div className="w-full space-y-2 mt-4">
+      <label className="block text-sm/6 font-medium">Imágenes adicionales</label>
+      {images.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {images.map(image => (
+            <div key={image.id} className="relative">
+              <img
+                src={image.img}
+                alt=""
+                className="size-20 object-cover rounded-md border border-muted/50"
+              />
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() => handleRemove(image.id)}
+                className="absolute -top-2 -right-2 rounded-full bg-danger text-white p-1 hover:cursor-pointer hover:opacity-80 disabled:opacity-50"
+                aria-label="Quitar imagen"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <FileField
+        key={fileInputKey}
+        name="new-product-image"
+        disabled={isLoading}
+        onChange={handleAdd}
+      />
+    </div>
   )
 }
 

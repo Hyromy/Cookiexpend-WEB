@@ -141,12 +141,25 @@ export type productVariantResponse = itemResponse & {
   name: string
 }
 
+export type productImageRequest = {
+  product: string | number
+  img: File
+  order?: number
+}
+
+export type productImageResponse = itemResponse & eventResponse & {
+  product: number
+  img: string
+  order: number
+}
+
 export type productResponse = Omit<productRequest, "img" | "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
   slug: string
   img: string | null
   category: categoryResponse | null
   presentation: presentationResponse | null
   variants: productVariantResponse[]
+  images: productImageResponse[]
 }
 
 // Note: Category/Presentation are only exposed via `{id, label, order[, logo]}` by
