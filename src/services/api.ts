@@ -14,6 +14,12 @@ export class ApiError extends Error {
   }
 }
 
+const getCookie = (name: string) => {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length == 2) return parts.pop()?.split(';').shift()
+}
+
 const client = axios.create({
   baseURL: API_URL,
   timeout: DEFAULT_TIMEOUT_MS,
@@ -25,6 +31,14 @@ const client = axios.create({
     "Content-Type": "application/json",
     "X-Source": "web",
   },
+})
+
+client.interceptors.request.use(config => {
+  const csrfToken = getCookie("csrftoken")
+  if (csrfToken && config.headers) {
+    config.headers["X-CSRFToken"] = csrfToken
+  }
+  return config
 })
 
 client.interceptors.response.use(
