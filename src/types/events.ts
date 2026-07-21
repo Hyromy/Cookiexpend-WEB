@@ -3,7 +3,7 @@ export type eventAction =
 	"updated" |
 	"deleted"
 
-export type eventModel = 
+export type eventModel =
 	"establishment" |
 	"factory" |
 	"store" |
