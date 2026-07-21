@@ -149,17 +149,109 @@ export type productResponse = Omit<productRequest, "img" | "category" | "present
   variants: productVariantResponse[]
 }
 
-// Note: Category/Presentation are only exposed via `{id, label, order[, logo]}` by
-// their backend serializers (apps/catalog/serializers.py) — no audit fields.
+// Note: catalog resources (apps/catalog/serializers.py) are only exposed via their
+// own flat fields — no audit fields (created_at/updated_at/version) like the rest.
+export type categoryRequest = {
+  label: string
+  order?: number
+  logo?: File
+}
+
 export type categoryResponse = itemResponse & {
   label: string
   order: number
   logo: string | null
 }
 
+export type presentationRequest = {
+  label: string
+  order?: number
+}
+
 export type presentationResponse = itemResponse & {
   label: string
   order: number
+}
+
+export type galleryItemRequest = {
+  url: File
+  alt?: string
+  order?: number
+}
+
+export type galleryItemResponse = itemResponse & {
+  url: string
+  alt: string
+  order: number
+}
+
+export type faqRequest = {
+  question: string
+  answer: string
+  order?: number
+}
+
+export type faqResponse = itemResponse & {
+  question: string
+  answer: string
+  order: number
+}
+
+export type subjectRequest = {
+  label: string
+  department: string | number
+  order?: number
+}
+
+export type subjectResponse = itemResponse & {
+  label: string
+  department: number
+  order: number
+}
+
+export type departmentRequest = {
+  name: string
+  email?: string
+  order?: number
+}
+
+export type departmentResponse = itemResponse & {
+  name: string
+  email: string
+  order: number
+  subjects: subjectResponse[]
+}
+
+export type brandRequest = {
+  name: string
+  logo?: File
+}
+
+export type brandResponse = itemResponse & {
+  name: string
+  logo_url: string | null
+}
+
+export type retailerRequest = {
+  name: string
+  address: string
+  state: string
+  municipality: string
+  lat?: string
+  lng?: string
+  brand?: string | number
+  logo?: File
+}
+
+export type retailerResponse = itemResponse & {
+  name: string
+  address: string
+  state: string
+  municipality: string
+  lat: string | null
+  lng: string | null
+  brand: brandResponse | null
+  logo_url: string | null
 }
 
 export type packageRequest = {

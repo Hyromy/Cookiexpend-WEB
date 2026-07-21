@@ -126,6 +126,18 @@ class CategoryService {
   get(id: string | number = ""): Promise<apiType.categoryResponse | apiType.categoryResponse[]> {
     return api.get(this.endpoint + param(id))
   }
+
+  new(data: apiType.categoryRequest): Promise<apiType.categoryResponse> {
+    return api.post(this.endpoint, buildFormData(data), { headers: { "Content-Type": undefined } })
+  }
+
+  upd(id: string | number, data: apiType.categoryRequest): Promise<apiType.categoryResponse> {
+    return api.patch(this.endpoint + param(id), buildFormData(data), { headers: { "Content-Type": undefined } })
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
 }
 
 class PresentationService {
@@ -133,6 +145,134 @@ class PresentationService {
 
   get(id: string | number = ""): Promise<apiType.presentationResponse | apiType.presentationResponse[]> {
     return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.presentationRequest): Promise<apiType.presentationResponse> {
+    return api.post(this.endpoint, data)
+  }
+
+  upd(id: string | number, data: apiType.presentationRequest): Promise<apiType.presentationResponse> {
+    return api.patch(this.endpoint + param(id), data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
+}
+
+class GalleryItemService {
+  readonly endpoint = "api/catalog/gallery/"
+
+  get(id: string | number = ""): Promise<apiType.galleryItemResponse | apiType.galleryItemResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.galleryItemRequest): Promise<apiType.galleryItemResponse> {
+    return api.post(this.endpoint, buildFormData(data), { headers: { "Content-Type": undefined } })
+  }
+
+  upd(id: string | number, data: apiType.galleryItemRequest): Promise<apiType.galleryItemResponse> {
+    return api.patch(this.endpoint + param(id), buildFormData(data), { headers: { "Content-Type": undefined } })
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
+}
+
+class FaqService {
+  readonly endpoint = "api/catalog/faqs/"
+
+  get(id: string | number = ""): Promise<apiType.faqResponse | apiType.faqResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.faqRequest): Promise<apiType.faqResponse> {
+    return api.post(this.endpoint, data)
+  }
+
+  upd(id: string | number, data: apiType.faqRequest): Promise<apiType.faqResponse> {
+    return api.patch(this.endpoint + param(id), data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
+}
+
+class SubjectService {
+  readonly endpoint = "api/catalog/subjects/"
+
+  get(department: string | number): Promise<apiType.subjectResponse[]> {
+    return api.get(this.endpoint + args({ department }))
+  }
+
+  new(data: apiType.subjectRequest): Promise<apiType.subjectResponse> {
+    return api.post(this.endpoint, data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
+}
+
+class DepartmentService {
+  readonly endpoint = "api/catalog/departments/"
+
+  get(id: string | number = ""): Promise<apiType.departmentResponse | apiType.departmentResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.departmentRequest): Promise<apiType.departmentResponse> {
+    return api.post(this.endpoint, data)
+  }
+
+  upd(id: string | number, data: apiType.departmentRequest): Promise<apiType.departmentResponse> {
+    return api.patch(this.endpoint + param(id), data)
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
+}
+
+class BrandService {
+  readonly endpoint = "api/catalog/brands/"
+
+  get(id: string | number = ""): Promise<apiType.brandResponse | apiType.brandResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.brandRequest): Promise<apiType.brandResponse> {
+    return api.post(this.endpoint, buildFormData(data), { headers: { "Content-Type": undefined } })
+  }
+
+  upd(id: string | number, data: apiType.brandRequest): Promise<apiType.brandResponse> {
+    return api.patch(this.endpoint + param(id), buildFormData(data), { headers: { "Content-Type": undefined } })
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
+  }
+}
+
+class RetailerService {
+  readonly endpoint = "api/catalog/retailers/"
+
+  get(id: string | number = ""): Promise<apiType.retailerResponse | apiType.retailerResponse[]> {
+    return api.get(this.endpoint + param(id))
+  }
+
+  new(data: apiType.retailerRequest): Promise<apiType.retailerResponse> {
+    return api.post(this.endpoint, buildFormData(data), { headers: { "Content-Type": undefined } })
+  }
+
+  upd(id: string | number, data: apiType.retailerRequest): Promise<apiType.retailerResponse> {
+    return api.patch(this.endpoint + param(id), buildFormData(data), { headers: { "Content-Type": undefined } })
+  }
+
+  del(id: string | number): Promise<void> {
+    return api.delete(this.endpoint + param(id))
   }
 }
 
@@ -238,6 +378,12 @@ export const factoryService = Object.freeze(new FactoryService())
 export const storeService = Object.freeze(new StoreService())
 export const categoryService = Object.freeze(new CategoryService())
 export const presentationService = Object.freeze(new PresentationService())
+export const galleryItemService = Object.freeze(new GalleryItemService())
+export const faqService = Object.freeze(new FaqService())
+export const subjectService = Object.freeze(new SubjectService())
+export const departmentService = Object.freeze(new DepartmentService())
+export const brandService = Object.freeze(new BrandService())
+export const retailerService = Object.freeze(new RetailerService())
 export const productService = Object.freeze(new ProductService())
 export const deliveryService = Object.freeze(new DeliveryService())
 export const inventoryService = Object.freeze(new InventoryService())

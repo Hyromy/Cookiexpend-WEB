@@ -5,7 +5,14 @@ import {
   ShoppingCart,
   Factory as FactoryIcon,
   Truck,
-  Blocks
+  Blocks,
+  Tags,
+  Layers,
+  Image,
+  HelpCircle,
+  Building2,
+  Award,
+  MapPinned
 } from "lucide-react"
 import { lazy } from "react"
 
@@ -20,6 +27,15 @@ const Factories = lazy(() => import("../pages/modules/Factories"))
 const Deliveries = lazy(() => import("../pages/modules/Deliveries"))
 const Inventories = lazy(() => import("../pages/modules/Inventories"))
 const Redirect = lazy(() => import("../pages/modules/Redirect"))
+const Categories = lazy(() => import("../pages/modules/Categories"))
+const Presentations = lazy(() => import("../pages/modules/Presentations"))
+const Gallery = lazy(() => import("../pages/modules/Gallery"))
+const Faqs = lazy(() => import("../pages/modules/Faqs"))
+const Departments = lazy(() => import("../pages/modules/Departments"))
+const Brands = lazy(() => import("../pages/modules/Brands"))
+const Retailers = lazy(() => import("../pages/modules/Retailers"))
+
+const SITE_CONTENT_GROUP = "Sitio Web"
 
 export const MODULE_ROUTES: AppModuleRoute[] = [
   {
@@ -70,6 +86,62 @@ export const MODULE_ROUTES: AppModuleRoute[] = [
     label: "Usuarios",
     icon: <Users2 />,
     allowRoles: ["Factory manager"],
+  },
+  {
+    path: PATHS.categories,
+    element: <Categories />,
+    label: "Categorías",
+    icon: <Tags />,
+    allowRoles: ["Factory manager"],
+    group: SITE_CONTENT_GROUP,
+  },
+  {
+    path: PATHS.presentations,
+    element: <Presentations />,
+    label: "Presentaciones",
+    icon: <Layers />,
+    allowRoles: ["Factory manager"],
+    group: SITE_CONTENT_GROUP,
+  },
+  {
+    path: PATHS.gallery,
+    element: <Gallery />,
+    label: "Galería",
+    icon: <Image />,
+    allowRoles: ["Factory manager"],
+    group: SITE_CONTENT_GROUP,
+  },
+  {
+    path: PATHS.faqs,
+    element: <Faqs />,
+    label: "FAQ",
+    icon: <HelpCircle />,
+    allowRoles: ["Factory manager"],
+    group: SITE_CONTENT_GROUP,
+  },
+  {
+    path: PATHS.departments,
+    element: <Departments />,
+    label: "Departamentos",
+    icon: <Building2 />,
+    allowRoles: ["Factory manager"],
+    group: SITE_CONTENT_GROUP,
+  },
+  {
+    path: PATHS.brands,
+    element: <Brands />,
+    label: "Marcas",
+    icon: <Award />,
+    allowRoles: ["Factory manager"],
+    group: SITE_CONTENT_GROUP,
+  },
+  {
+    path: PATHS.retailers,
+    element: <Retailers />,
+    label: "Retailers",
+    icon: <MapPinned />,
+    allowRoles: ["Factory manager"],
+    group: SITE_CONTENT_GROUP,
   },
   {
     path: PATHS.loadingPanel,
