@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { X } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
+import { Download, Image as ImageIcon, Trash, Upload } from "lucide-react"
+import { clsx } from "clsx"
 import useApi from "../../hooks/useApi"
 import type { ApiRequestError, categoryResponse, presentationResponse, productImageResponse, productRequest, productResponse } from "../../types/api"
 import { categoryService, presentationService, productImageService, productService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
-import { FileField, Form, MultiSelectField, SelectField, TextAreaField, TextField, type SelectFieldProps } from "../../components/Form"
+import { Form, MultiSelectField, SelectField, TextAreaField, TextField, type SelectFieldProps } from "../../components/Form"
 import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
 import type { eventModel } from "../../types/events"
@@ -19,7 +20,9 @@ const PRODUCT_REQUIRED_ARGS = [
   "sku",
   "name",
   "price",
-  "img",
+  "description",
+  "category",
+  "presentation",
 ] as (keyof productRequest)[]
 
 export default function Products() {
@@ -98,21 +101,23 @@ export default function Products() {
               }
             },
             {
-              accessorKey: "img",
+              id: "img",
               header: "Imagen",
-              cell: ({ getValue }) => getValue() && (
-                <ActionButton
-                  variant="info"
-                  icon="image"
-                  disabled={!getValue()}
-                  cb={() => {
-                    setImageSrc(getValue() as string)
-                    setIsImageOpen(true)
-                  }}
-                />
-              ),
+              cell: ({ row }) => {
+                const src = row.original.images[0]?.img
+                return src && (
+                  <ActionButton
+                    variant="info"
+                    icon="image"
+                    cb={() => {
+                      setImageSrc(src)
+                      setIsImageOpen(true)
+                    }}
+                  />
+                )
+              },
               meta: {
-                setCellToExport: row => row.img ? `=IMAGE("${row.img}")` : "-"
+                setCellToExport: row => row.images[0]?.img ? `=IMAGE("${row.images[0].img}")` : "-"
               }
             },
             {
@@ -206,6 +211,8 @@ function ProductForm({ product, onDone }: ProductFormProps) {
     () => product?.variants.map(v => v.id.toString()) ?? []
   )
   const [images, setImages] = useState<productImageResponse[]>(() => product?.images ?? [])
+  const [stagedImages, setStagedImages] = useState<StagedImage[]>([])
+  const [isUploadingImages, setIsUploadingImages] = useState(false)
 
   useEffect(() => { if (product) setData(product) }, [product, setData])
 
@@ -225,37 +232,55 @@ function ProductForm({ product, onDone }: ProductFormProps) {
       addToast("El precio no puede ser mayor a 9999.99", "warning")
       return
     }
-    if (errData?.img?.find(thisIncludes("valid image"))) {
-      addToast("Por favor, seleccione una imagen válida", "warning")
-      return
-    }
 
     addToast("Error al guardar el producto, por favor intente más tarde", "error")
+  }
+
+  const uploadStagedImages = (productId: number) => {
+    return stagedImages.reduce<Promise<void>>(
+      (chain, staged, index) => chain.then(() => (
+        request(productImageService.new({ product: productId, img: staged.file, order: index }))
+          .then(() => {})
+          .catch(() => {
+            addToast("El producto se guardó, pero una de las imágenes adicionales no se pudo subir", "warning")
+          })
+      )),
+      Promise.resolve()
+    )
   }
 
   const onSubmitHandler = (data: productRequest) => {
     data.variants = variantIds
     clearData(data)
-    const validation = validate(data)
+    const hasImages = product ? images.length > 0 : stagedImages.length > 0
+    const validation = validate(data, hasImages)
     if (validation != true) {
       addToast(validation, "warning")
       return
     }
 
+    setIsUploadingImages(!product && stagedImages.length > 0);
+
     (product
       ? request(productService.upd(product.id, data))
       : request(productService.new(data))
 
-    ).then(() => {
+    ).then(async (savedProduct) => {
+      if (!product && stagedImages.length > 0 && savedProduct) {
+        await uploadStagedImages(savedProduct.id)
+      }
       addToast(`Producto ${product ? "actualizado" : "creado"} con éxito`, "success")
       onDone?.()
 
     }).catch((error) => submitErrorHandler(error))
+      .finally(() => setIsUploadingImages(false))
   }
+
+  const formId = product ? `product-form-${product.id}` : "product-form-new"
 
   return (
     <>
-      <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
+      <Form id={formId} onSubmit={onSubmitHandler} className="flex flex-col gap-4">
         <div>
           <TextField
             cleanRegex={/[^a-zA-Z0-9-]/}
@@ -286,14 +311,6 @@ function ProductForm({ product, onDone }: ProductFormProps) {
           />
         </div>
         <div>
-          <FileField
-            label="Imagen principal"
-            required={!product}
-            name="img"
-            value={product?.img}
-          />
-        </div>
-        <div>
           <TextField
             maxLen={50}
             name="badge"
@@ -308,6 +325,7 @@ function ProductForm({ product, onDone }: ProductFormProps) {
         </div>
         <div>
           <TextAreaField
+            required
             maxLen={500}
             name="description"
             label="Descripción"
@@ -321,15 +339,6 @@ function ProductForm({ product, onDone }: ProductFormProps) {
             onChange={setVariantIds}
           />
         </div>
-        <div className="flex justify-center">
-          <Button
-            className="px-6"
-            type="submit"
-            disabled={isLoading}
-          >
-            Guardar
-          </Button>
-        </div>
       </Form>
       {product
         ? (
@@ -340,11 +349,22 @@ function ProductForm({ product, onDone }: ProductFormProps) {
           />
         )
         : (
-          <p className="mt-4 text-sm opacity-60 text-center">
-            Podrás agregar imágenes adicionales después de guardar el producto.
-          </p>
+          <StagedImagesField
+            staged={stagedImages}
+            onChange={setStagedImages}
+          />
         )
       }
+      <div className="flex justify-center mt-4">
+        <Button
+          className="px-6"
+          type="submit"
+          form={formId}
+          disabled={isLoading || isUploadingImages}
+        >
+          {isUploadingImages ? "Subiendo imágenes..." : "Guardar"}
+        </Button>
+      </div>
     </>
   )
 }
@@ -364,9 +384,10 @@ function CategorySelectField({ defaultValue }: CategorySelectFieldProps) {
 
   return (
     <SelectField
+      required
       name="category"
       label="Categoría"
-      placeholder="Sin categoría"
+      placeholder="Selecciona una categoría"
       selected={defaultValue}
       options={options}
     />
@@ -388,6 +409,7 @@ function PresentationSelectField({ defaultValue }: PresentationSelectFieldProps)
 
   return (
     <SelectField
+      required
       name="presentation"
       label="Presentación"
       placeholder="Sin presentación"
@@ -424,6 +446,77 @@ function VariantsField({ excludeId, selected, onChange }: VariantsFieldProps) {
   )
 }
 
+type ImageRowProps = {
+  label: string
+  href: string
+  onRemove: () => void
+  disabled?: boolean
+}
+function ImageRow({ label, href, onRemove, disabled }: ImageRowProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex grow items-center gap-2 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 bg-initial">
+        <ImageIcon className="size-4 shrink-0 opacity-60 text-primary" />
+        <span className="truncate opacity-80 grow">{label}</span>
+      </div>
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 hover:bg-neutral-500/5 font-medium transition-colors duration-150 h-full shrink-0"
+        title="Ver imagen"
+      >
+        <Download className="p-1 text-primary opacity-60" />
+      </a>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onRemove}
+        className="flex items-center justify-center gap-1 rounded-md px-3 py-1.5 outline-1 -outline-offset-1 hover:bg-danger/10 transition-colors duration-150 h-full shrink-0 disabled:opacity-50 hover:cursor-pointer"
+        title="Eliminar imagen"
+      >
+        <Trash className="p-1 text-danger opacity-70" />
+      </button>
+    </div>
+  )
+}
+
+type MultiImagePickerProps = {
+  disabled?: boolean
+  onSelect: (files: File[]) => void
+}
+function MultiImagePicker({ disabled, onSelect }: MultiImagePickerProps) {
+  const [key, setKey] = useState(0)
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (files.length) onSelect(files)
+    setKey(k => k + 1)
+  }
+
+  return (
+    <label
+      className={clsx(
+        "flex items-center gap-2 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 transition-all duration-50 bg-initial",
+        "has-[input:focus-within]:outline-2 has-[input:focus-within]:-outline-offset-2 has-[input:focus-within]:outline-primary",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-neutral-500/5"
+      )}
+    >
+      <input
+        key={key}
+        type="file"
+        accept="image/*"
+        multiple
+        disabled={disabled}
+        onChange={handleChange}
+        className="sr-only"
+      />
+      <Upload className="size-4 shrink-0 opacity-60 text-primary" />
+      <span className="truncate opacity-80 grow">Agregar imágenes...</span>
+    </label>
+  )
+}
+
 type ProductImagesFieldProps = {
   productId: number
   images: productImageResponse[]
@@ -432,17 +525,18 @@ type ProductImagesFieldProps = {
 function ProductImagesField({ productId, images, onChange }: ProductImagesFieldProps) {
   const { isLoading, request } = useApi<productImageResponse>()
   const { addToast } = useToast()
-  const [fileInputKey, setFileInputKey] = useState(0)
 
-  const handleAdd = (file: File | null) => {
-    if (!file) return
-
-    request(productImageService.new({ product: productId, img: file, order: images.length }))
-      .then((newImage) => {
-        onChange([...images, newImage!])
-        setFileInputKey(k => k + 1)
-      })
-      .catch(() => addToast("Error al agregar la imagen, por favor intente más tarde", "error"))
+  const handleSelect = async (files: File[]) => {
+    let current = images
+    for (const file of files) {
+      try {
+        const newImage = await request(productImageService.new({ product: productId, img: file, order: current.length }))
+        current = [...current, newImage!]
+        onChange(current)
+      } catch {
+        addToast("Error al agregar una de las imágenes, por favor intente más tarde", "error")
+      }
+    }
   }
 
   const handleRemove = (imageId: number) => {
@@ -453,35 +547,68 @@ function ProductImagesField({ productId, images, onChange }: ProductImagesFieldP
 
   return (
     <div className="w-full space-y-2 mt-4">
-      <label className="block text-sm/6 font-medium">Imágenes adicionales</label>
+      <label className="block text-sm/6 font-medium"><strong className="text-red-500 mr-1">*</strong>Imágenes</label>
       {images.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {images.map(image => (
-            <div key={image.id} className="relative">
-              <img
-                src={image.img}
-                alt=""
-                className="size-20 object-cover rounded-md border border-muted/50"
-              />
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={() => handleRemove(image.id)}
-                className="absolute -top-2 -right-2 rounded-full bg-danger text-white p-1 hover:cursor-pointer hover:opacity-80 disabled:opacity-50"
-                aria-label="Quitar imagen"
-              >
-                <X className="size-3" />
-              </button>
-            </div>
+        <div className="space-y-1.5">
+          {images.map((image, index) => (
+            <ImageRow
+              key={image.id}
+              label={`Imagen ${index + 1}`}
+              href={image.img}
+              disabled={isLoading}
+              onRemove={() => handleRemove(image.id)}
+            />
           ))}
         </div>
       )}
-      <FileField
-        key={fileInputKey}
-        name="new-product-image"
-        disabled={isLoading}
-        onChange={handleAdd}
-      />
+      <MultiImagePicker disabled={isLoading} onSelect={handleSelect} />
+    </div>
+  )
+}
+
+type StagedImage = {
+  file: File
+  previewUrl: string
+}
+
+type StagedImagesFieldProps = {
+  staged: StagedImage[]
+  onChange: (staged: StagedImage[]) => void
+}
+function StagedImagesField({ staged, onChange }: StagedImagesFieldProps) {
+  const stagedRef = useRef(staged)
+  useEffect(() => { stagedRef.current = staged })
+
+  useEffect(() => () => {
+    stagedRef.current.forEach(s => URL.revokeObjectURL(s.previewUrl))
+  }, [])
+
+  const handleSelect = (files: File[]) => {
+    const added = files.map(file => ({ file, previewUrl: URL.createObjectURL(file) }))
+    onChange([...staged, ...added])
+  }
+
+  const handleRemove = (index: number) => {
+    URL.revokeObjectURL(staged[index].previewUrl)
+    onChange(staged.filter((_, i) => i != index))
+  }
+
+  return (
+    <div className="w-full space-y-2 mt-4">
+      <label className="block text-sm/6 font-medium"><strong className="text-red-500 mr-1">*</strong>Imágenes</label>
+      {staged.length > 0 && (
+        <div className="space-y-1.5">
+          {staged.map((img, index) => (
+            <ImageRow
+              key={img.previewUrl}
+              label={img.file.name}
+              href={img.previewUrl}
+              onRemove={() => handleRemove(index)}
+            />
+          ))}
+        </div>
+      )}
+      <MultiImagePicker onSelect={handleSelect} />
     </div>
   )
 }
@@ -531,7 +658,7 @@ function DeleteDialog({
 
 const clearData = (data: productRequest) => {
   const record = data as Record<string, unknown>
-  PRODUCT_REQUIRED_ARGS.filter(k => k != "img").forEach(key => {
+  PRODUCT_REQUIRED_ARGS.forEach(key => {
     const value = record[key]
     if (typeof value == "string" && value) {
       record[key] = value.trim().replace(/\s+/g, " ")
@@ -539,12 +666,11 @@ const clearData = (data: productRequest) => {
   })
 
   if (data.badge) data.badge = data.badge.trim().replace(/\s+/g, " ")
-  if (data.description) data.description = data.description.trim()
 
   data.price = parseFloat(data.price).toFixed(2)
 }
 
-const validate = (data: productRequest): string | true => {
+const validate = (data: productRequest, hasImages: boolean): string | true => {
   if (PRODUCT_REQUIRED_ARGS.some(k => !data[k])) {
     return "Por favor, complete todos los campos obligatorios."
   }
@@ -553,6 +679,9 @@ const validate = (data: productRequest): string | true => {
   }
   if (parseInt(data.sku) <= 0) {
     return "Por favor, ingrese un SKU numérico válido"
+  }
+  if (!hasImages) {
+    return "Por favor, agregue al menos una imagen del producto"
   }
 
   return true

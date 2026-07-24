@@ -128,11 +128,10 @@ export type productRequest = {
   sku: string
   name: string
   price: string
-  img?: File
-  description?: string
+  description: string
   badge?: string
-  category?: string | number
-  presentation?: string | number
+  category: string | number
+  presentation: string | number
   variants?: Array<string | number>
 }
 
@@ -153,9 +152,8 @@ export type productImageResponse = itemResponse & eventResponse & {
   order: number
 }
 
-export type productResponse = Omit<productRequest, "img" | "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
+export type productResponse = Omit<productRequest, "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
   slug: string
-  img: string | null
   category: categoryResponse | null
   presentation: presentationResponse | null
   variants: productVariantResponse[]
