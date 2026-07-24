@@ -12,7 +12,6 @@ import { Modal } from "../../components/Modal"
 import useAuth from "../../hooks/useAuth"
 import { Minus, Plus, Image } from "lucide-react"
 import { parseDate, parseInventory, type parsedInventory } from "../../utils/parser"
-import { API_URL } from "../../constants/config"
 import { Ticket } from "../../components/Ticket"
 import { useReactToPrint } from "react-to-print"
 import Dropdown from "../../components/Dropdown"
@@ -478,9 +477,9 @@ function ProductCard({
         className="w-full h-32 flex items-center justify-center overflow-hidden cursor-pointer"
         onClick={() => currentQuantity < stock && handleStepChange(product.id, currentQuantity, 1)}
       >
-        {product.img ? (
-          <img 
-            src={API_URL + product.img}
+        {product.images[0] ? (
+          <img
+            src={product.images[0].img}
             alt={product.name}
             className={imgClasses}
           />

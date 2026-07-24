@@ -9,7 +9,6 @@ import type { eventData, eventModel } from "../../types/events"
 import useAuth from "../../hooks/useAuth"
 import { Image } from "lucide-react"
 import { parseInventory, type parsedInventory } from "../../utils/parser"
-import { API_URL } from "../../constants/config"
 import Dropdown from "../../components/Dropdown"
 
 const INVENTORY_EVENTS = ["inventory"] as eventModel[]
@@ -126,10 +125,10 @@ function ThisInventory({ data }: { data: parsedInventory["products"] }) {
         <span>x{i.quantity}</span>
       </div>
       <div>
-        {i.product.img
+        {i.product.images[0]
           ? (
-            <img 
-              src={API_URL + i.product.img}
+            <img
+              src={i.product.images[0].img}
               alt={i.product.name}
               className={imgClasses}
             />

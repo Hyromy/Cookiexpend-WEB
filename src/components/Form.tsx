@@ -21,6 +21,7 @@ type FormProps<T> = {
   children: ReactNode
   onSubmit: (data: T) => void
   className?: string
+  id?: string
 }
 /**
  * A reusable form component that handles form submission and data extraction.
@@ -42,7 +43,8 @@ type FormProps<T> = {
 export function Form<T>({
   children,
   onSubmit,
-  className
+  className,
+  id
 }: FormProps<T>) {
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
     e.preventDefault()
@@ -52,7 +54,7 @@ export function Form<T>({
   }
 
   return (
-    <form onSubmit={handleSubmit} className={className}>
+    <form id={id} onSubmit={handleSubmit} className={className}>
       {children}
     </form>
   )

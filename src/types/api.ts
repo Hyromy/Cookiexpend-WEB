@@ -128,11 +128,10 @@ export type productRequest = {
   sku: string
   name: string
   price: string
-  img?: File
-  description?: string
+  description: string
   badge?: string
-  category?: string | number
-  presentation?: string | number
+  category: string | number
+  presentation: string | number
   variants?: Array<string | number>
 }
 
@@ -141,12 +140,24 @@ export type productVariantResponse = itemResponse & {
   name: string
 }
 
-export type productResponse = Omit<productRequest, "img" | "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
+export type productImageRequest = {
+  product: string | number
+  img: File
+  order?: number
+}
+
+export type productImageResponse = itemResponse & eventResponse & {
+  product: number
+  img: string
+  order: number
+}
+
+export type productResponse = Omit<productRequest, "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
   slug: string
-  img: string | null
   category: categoryResponse | null
   presentation: presentationResponse | null
   variants: productVariantResponse[]
+  images: productImageResponse[]
 }
 
 // Note: Category/Presentation are only exposed via `{id, label, order[, logo]}` by
