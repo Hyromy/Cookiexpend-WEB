@@ -162,25 +162,17 @@ class ProductService {
   del(id: string | number): Promise<void> {
     return api.delete(this.endpoint + param(id))
   }
-}
 
-class ProductImageService {
-  readonly endpoint = "api/store-mgmt/product-images/"
-
-  get(product: string | number): Promise<apiType.productImageResponse[]> {
-    return api.get(this.endpoint + args({ product }))
-  }
-
-  new(data: apiType.productImageRequest): Promise<apiType.productImageResponse> {
+  addImage(productId: string | number, data: apiType.productImageRequest): Promise<apiType.productResponse> {
     return api.post(
-      this.endpoint,
+      this.endpoint + param(productId) + "images/",
       buildFormData(data),
       { headers: { "Content-Type": undefined } }
     )
   }
 
-  del(id: string | number): Promise<void> {
-    return api.delete(this.endpoint + param(id))
+  removeImage(productId: string | number, imageId: string | number): Promise<apiType.productResponse> {
+    return api.delete(this.endpoint + param(productId) + "images/" + param(imageId))
   }
 }
 
@@ -259,7 +251,6 @@ export const storeService = Object.freeze(new StoreService())
 export const categoryService = Object.freeze(new CategoryService())
 export const presentationService = Object.freeze(new PresentationService())
 export const productService = Object.freeze(new ProductService())
-export const productImageService = Object.freeze(new ProductImageService())
 export const deliveryService = Object.freeze(new DeliveryService())
 export const inventoryService = Object.freeze(new InventoryService())
 export const saleService = Object.freeze(new SaleService())

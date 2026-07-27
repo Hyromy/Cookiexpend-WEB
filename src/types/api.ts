@@ -141,7 +141,6 @@ export type productVariantResponse = itemResponse & {
 }
 
 export type productImageRequest = {
-  product: string | number
   img: File
   order?: number
 }

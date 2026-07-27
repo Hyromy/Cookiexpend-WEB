@@ -3,7 +3,7 @@ import { Download, Image as ImageIcon, Trash, Upload } from "lucide-react"
 import { clsx } from "clsx"
 import useApi from "../../hooks/useApi"
 import type { ApiRequestError, categoryResponse, presentationResponse, productImageResponse, productRequest, productResponse } from "../../types/api"
-import { categoryService, presentationService, productImageService, productService } from "../../services/cookiexpend"
+import { categoryService, presentationService, productService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
 import { Form, MultiSelectField, SelectField, TextAreaField, TextField, type SelectFieldProps } from "../../components/Form"
@@ -239,7 +239,7 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   const uploadStagedImages = (productId: number) => {
     return stagedImages.reduce<Promise<void>>(
       (chain, staged, index) => chain.then(() => (
-        request(productImageService.new({ product: productId, img: staged.file, order: index }))
+        request(productService.addImage(productId, { img: staged.file, order: index }))
           .then(() => {})
           .catch(() => {
             addToast("El producto se guardó, pero una de las imágenes adicionales no se pudo subir", "warning")
@@ -523,15 +523,15 @@ type ProductImagesFieldProps = {
   onChange: (images: productImageResponse[]) => void
 }
 function ProductImagesField({ productId, images, onChange }: ProductImagesFieldProps) {
-  const { isLoading, request } = useApi<productImageResponse>()
+  const { isLoading, request } = useApi<productResponse>()
   const { addToast } = useToast()
 
   const handleSelect = async (files: File[]) => {
     let current = images
     for (const file of files) {
       try {
-        const newImage = await request(productImageService.new({ product: productId, img: file, order: current.length }))
-        current = [...current, newImage!]
+        const updated = await request(productService.addImage(productId, { img: file, order: current.length }))
+        current = updated!.images
         onChange(current)
       } catch {
         addToast("Error al agregar una de las imágenes, por favor intente más tarde", "error")
@@ -540,8 +540,8 @@ function ProductImagesField({ productId, images, onChange }: ProductImagesFieldP
   }
 
   const handleRemove = (imageId: number) => {
-    request(productImageService.del(imageId))
-      .then(() => onChange(images.filter(i => i.id != imageId)))
+    request(productService.removeImage(productId, imageId))
+      .then(updated => onChange(updated!.images))
       .catch(() => addToast("Error al eliminar la imagen, por favor intente más tarde", "error"))
   }
 
