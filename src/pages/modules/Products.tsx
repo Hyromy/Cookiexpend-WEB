@@ -11,6 +11,7 @@ import type { eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 import useToast from "../../hooks/useToast"
 import Dropdown from "../../components/Dropdown"
+import { MassiveUpload } from "../../layouts/Excel"
 
 const PRODUCT_EVENTS = ["product"] as eventModel[]
 
@@ -68,8 +69,21 @@ export default function Products() {
         emptyProps={{ title: "Productos", content: btnAdd }}
         errorProps={{ onRetry: requestData }}
       >
-        <div className="mb-2">
+        <div className="mb-2 flex gap-2">
           {btnAdd}
+          <MassiveUpload
+            fileName="Productos_plantilla.xlsx"
+            sheets={[
+              {
+                name: "Productos",
+                columns: ["código", "nombre", "categoría", "precio"]
+              },
+              {
+                name: "Variantes",
+                columns: ["código", "código de variante"]
+              }
+            ]}
+          />
         </div>
         <Table
           data={data!}
