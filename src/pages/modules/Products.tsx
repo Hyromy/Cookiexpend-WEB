@@ -237,16 +237,13 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   }
 
   const uploadStagedImages = (productId: number) => {
-    return stagedImages.reduce<Promise<void>>(
-      (chain, staged, index) => chain.then(() => (
-        request(productService.addImage(productId, { img: staged.file, order: index }))
-          .then(() => {})
-          .catch(() => {
-            addToast("El producto se guardó, pero una de las imágenes adicionales no se pudo subir", "warning")
-          })
-      )),
-      Promise.resolve()
-    )
+    if (stagedImages.length === 0) return Promise.resolve()
+
+    return request(productService.addImage(productId, { img: stagedImages.map(s => s.file) }))
+      .then(() => {})
+      .catch(() => {
+        addToast("El producto se guardó, pero las imágenes adicionales no se pudieron subir", "warning")
+      })
   }
 
   const onSubmitHandler = (data: productRequest) => {
@@ -527,15 +524,11 @@ function ProductImagesField({ productId, images, onChange }: ProductImagesFieldP
   const { addToast } = useToast()
 
   const handleSelect = async (files: File[]) => {
-    let current = images
-    for (const file of files) {
-      try {
-        const updated = await request(productService.addImage(productId, { img: file, order: current.length }))
-        current = updated!.images
-        onChange(current)
-      } catch {
-        addToast("Error al agregar una de las imágenes, por favor intente más tarde", "error")
-      }
+    try {
+      const updated = await request(productService.addImage(productId, { img: files }))
+      onChange(updated!.images)
+    } catch {
+      addToast("Error al agregar las imágenes, por favor intente más tarde", "error")
     }
   }
 

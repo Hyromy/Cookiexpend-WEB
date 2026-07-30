@@ -30,7 +30,7 @@ const buildFormData = (obj: Record<string, unknown>): FormData => {
     if (value === undefined || value === null || value === "") continue
 
     if (Array.isArray(value)) {
-      value.forEach(item => fd.append(key, String(item)))
+      value.forEach(item => fd.append(key, item instanceof Blob ? item : String(item)))
     } else {
       fd.append(key, value as string | Blob)
     }
