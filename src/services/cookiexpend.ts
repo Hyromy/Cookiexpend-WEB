@@ -151,6 +151,14 @@ class ProductService {
     )
   }
 
+  newMassive(tables: apiType.productMassiveRequest): Promise<apiType.massiveResponse> {
+    return api.post(
+      this.endpoint + "massive/",
+      tables,
+      { headers: { "Content-Type": undefined } }
+    )
+  }
+
   upd(id: string | number, data: apiType.productRequest): Promise<apiType.productResponse> {
     return api.patch(
       this.endpoint + param(id),
