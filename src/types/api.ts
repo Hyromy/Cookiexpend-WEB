@@ -1,8 +1,18 @@
+export type ApiData = Record<string, unknown> | unknown[] | string | number | boolean | null
+
 export type ApiRequestError = {
   message: string
   status?: number
   data?: unknown
   isNetworkError: boolean
+}
+
+export type massiveSheet<T> = Record<string, T[]>
+
+export type massiveResponse = {
+  duplicated: massiveSheet<string>[]
+  errors: massiveSheet<string>[]
+  inserted: massiveSheet<unknown>[]
 }
 
 export type loginRequest = {
@@ -140,6 +150,21 @@ export type productVariantResponse = itemResponse & {
   slug: string
   name: string
 }
+
+export type productMassiveRequest1 = {
+  category?: productRequest["category"]
+  name: productRequest["name"]
+  price: productRequest["price"]
+  sku: productRequest["sku"]
+}
+export type productMassiveRequest2 = {
+  sku: productRequest["sku"]
+  variant_sku: productRequest["sku"]
+}
+export type productMassiveRequest = [
+  productMassiveRequest1[],
+  productMassiveRequest2[]
+]
 
 export type productResponse = Omit<productRequest, "img" | "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
   slug: string

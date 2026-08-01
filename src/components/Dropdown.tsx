@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import React, { useEffect, useRef, useState, type ReactNode } from "react"
 import { ChevronDown } from "lucide-react"
 import { clsx } from "clsx"
 
@@ -88,6 +88,61 @@ export default function Dropdown({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+type AccordionDropdownProps = {
+  children: ReactNode
+  options?: ReactNode[]
+}
+export function AccordionDropdown({
+  children,
+  options,
+}: AccordionDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const hasOptions = options && options.length > 0
+
+  return (
+    <div className="w-full border border-muted rounded-lg overflow-hidden bg-bg shadow-sm">
+      <button
+        type="button"
+        className={clsx(
+          "w-full flex justify-between items-center p-4 font-medium transition-colors focus:outline-none",
+          hasOptions && "cursor-pointer"
+        )}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {children}
+        {hasOptions && (
+          <ChevronDown
+            className={clsx(
+              "transition-transform duration-300",
+              isOpen && "rotate-180"
+            )}
+          />
+        )}
+      </button>
+      <div
+        className={clsx(
+          "transition-all duration-300 ease-in-out",
+          isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+        )}
+      >
+        <div
+          className={clsx(hasOptions && "border-muted border-t")}
+        >
+          {React.Children.toArray(options).map((child, index) => (
+            <div
+              key={index}
+              className="m-2"
+            >
+              {child}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

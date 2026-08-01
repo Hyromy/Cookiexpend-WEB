@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import useApi from "../../hooks/useApi"
-import type { ApiRequestError, categoryResponse, presentationResponse, productRequest, productResponse } from "../../types/api"
+import type { 
+  ApiRequestError,
+  categoryResponse,
+  presentationResponse,
+  productRequest,
+  productResponse,
+  productMassiveRequest
+} from "../../types/api"
 import { categoryService, presentationService, productService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
@@ -11,6 +18,7 @@ import type { eventModel } from "../../types/events"
 import { Dialog, Modal } from "../../components/Modal"
 import useToast from "../../hooks/useToast"
 import Dropdown from "../../components/Dropdown"
+import { MassiveUpload } from "../../layouts/Massive"
 
 const PRODUCT_EVENTS = ["product"] as eventModel[]
 
@@ -58,6 +66,37 @@ export default function Products() {
       Agregar Producto
     </Button>
   )
+  const btnMassive = (
+    <MassiveUpload
+      promiseCB={matrix => productService.newMassive(matrix as productMassiveRequest)}
+      fileName="Productos_plantilla.xlsx"
+      title="Carga masiva de productos"
+      sheets={[
+        {
+          name: "Productos",
+          columns: [
+            { name: "* Código", key: "sku" },
+            { name: "* Nombre", key: "name" },
+            { name: "Categoría", key: "category" },
+            { name: "* Precio", key: "price" }
+          ]
+        },
+        {
+          name: "Variantes",
+          columns: [
+            { name: "* Código", key: "sku" },
+            { name: "* Código de variante", key: "variant_sku" }
+          ]
+        }
+      ]}
+    />
+  )
+  const btns = (
+    <div className="mb-2 flex gap-2">
+      {btnAdd}
+      {btnMassive}
+    </div>
+  )
 
   return (
     <>
@@ -65,12 +104,13 @@ export default function Products() {
         data={data}
         error={error}
         loading={isLoading}
-        emptyProps={{ title: "Productos", content: btnAdd }}
+        emptyProps={{ 
+          title: "Productos",
+          content: btns
+        }}
         errorProps={{ onRetry: requestData }}
       >
-        <div className="mb-2">
-          {btnAdd}
-        </div>
+        {btns}
         <Table
           data={data!}
           exportToExcel={{
