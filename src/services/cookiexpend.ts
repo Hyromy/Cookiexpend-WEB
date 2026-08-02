@@ -162,18 +162,6 @@ class ProductService {
   del(id: string | number): Promise<void> {
     return api.delete(this.endpoint + param(id))
   }
-
-  addImage(productId: string | number, data: apiType.productImageRequest): Promise<apiType.productResponse> {
-    return api.post(
-      this.endpoint + param(productId) + "images/",
-      buildFormData(data),
-      { headers: { "Content-Type": undefined } }
-    )
-  }
-
-  removeImage(productId: string | number, imageId: string | number): Promise<apiType.productResponse> {
-    return api.delete(this.endpoint + param(productId) + "images/" + param(imageId))
-  }
 }
 
 class DeliveryService {

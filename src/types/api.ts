@@ -133,15 +133,13 @@ export type productRequest = {
   category: string | number
   presentation: string | number
   variants?: Array<string | number>
+  img?: File[]
+  remove_images?: number[]
 }
 
 export type productVariantResponse = itemResponse & {
   slug: string
   name: string
-}
-
-export type productImageRequest = {
-  img: File[]
 }
 
 export type productImageResponse = itemResponse & eventResponse & {
@@ -150,7 +148,7 @@ export type productImageResponse = itemResponse & eventResponse & {
   order: number
 }
 
-export type productResponse = Omit<productRequest, "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
+export type productResponse = Omit<productRequest, "category" | "presentation" | "variants" | "img" | "remove_images"> & itemResponse & eventResponse & {
   slug: string
   category: categoryResponse | null
   presentation: presentationResponse | null

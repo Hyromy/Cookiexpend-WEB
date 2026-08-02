@@ -210,9 +210,9 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   const [variantIds, setVariantIds] = useState<string[]>(
     () => product?.variants.map(v => v.id.toString()) ?? []
   )
-  const [images, setImages] = useState<productImageResponse[]>(() => product?.images ?? [])
+  const [existingImages] = useState<productImageResponse[]>(() => product?.images ?? [])
+  const [removedImageIds, setRemovedImageIds] = useState<number[]>([])
   const [stagedImages, setStagedImages] = useState<StagedImage[]>([])
-  const [isUploadingImages, setIsUploadingImages] = useState(false)
 
   useEffect(() => { if (product) setData(product) }, [product, setData])
 
@@ -236,41 +236,28 @@ function ProductForm({ product, onDone }: ProductFormProps) {
     addToast("Error al guardar el producto, por favor intente más tarde", "error")
   }
 
-  const uploadStagedImages = (productId: number) => {
-    if (stagedImages.length === 0) return Promise.resolve()
-
-    return request(productService.addImage(productId, { img: stagedImages.map(s => s.file) }))
-      .then(() => {})
-      .catch(() => {
-        addToast("El producto se guardó, pero las imágenes adicionales no se pudieron subir", "warning")
-      })
-  }
-
   const onSubmitHandler = (data: productRequest) => {
     data.variants = variantIds
     clearData(data)
-    const hasImages = product ? images.length > 0 : stagedImages.length > 0
-    const validation = validate(data, hasImages)
+    const remainingImages = existingImages.length - removedImageIds.length + stagedImages.length
+    const validation = validate(data, remainingImages > 0)
     if (validation != true) {
       addToast(validation, "warning")
       return
     }
 
-    setIsUploadingImages(!product && stagedImages.length > 0);
+    if (stagedImages.length) data.img = stagedImages.map(s => s.file)
+    if (removedImageIds.length) data.remove_images = removedImageIds;
 
     (product
       ? request(productService.upd(product.id, data))
       : request(productService.new(data))
 
-    ).then(async (savedProduct) => {
-      if (!product && stagedImages.length > 0 && savedProduct) {
-        await uploadStagedImages(savedProduct.id)
-      }
+    ).then(() => {
       addToast(`Producto ${product ? "actualizado" : "creado"} con éxito`, "success")
       onDone?.()
 
     }).catch((error) => submitErrorHandler(error))
-      .finally(() => setIsUploadingImages(false))
   }
 
   const formId = product ? `product-form-${product.id}` : "product-form-new"
@@ -337,29 +324,21 @@ function ProductForm({ product, onDone }: ProductFormProps) {
           />
         </div>
       </Form>
-      {product
-        ? (
-          <ProductImagesField
-            productId={product.id}
-            images={images}
-            onChange={setImages}
-          />
-        )
-        : (
-          <StagedImagesField
-            staged={stagedImages}
-            onChange={setStagedImages}
-          />
-        )
-      }
+      <ImagesField
+        existing={existingImages}
+        removedIds={removedImageIds}
+        staged={stagedImages}
+        onRemoveExisting={(id) => setRemovedImageIds(prev => [...prev, id])}
+        onStagedChange={setStagedImages}
+      />
       <div className="flex justify-center mt-4">
         <Button
           className="px-6"
           type="submit"
           form={formId}
-          disabled={isLoading || isUploadingImages}
+          disabled={isLoading}
         >
-          {isUploadingImages ? "Subiendo imágenes..." : "Guardar"}
+          Guardar
         </Button>
       </div>
     </>
@@ -514,61 +493,19 @@ function MultiImagePicker({ disabled, onSelect }: MultiImagePickerProps) {
   )
 }
 
-type ProductImagesFieldProps = {
-  productId: number
-  images: productImageResponse[]
-  onChange: (images: productImageResponse[]) => void
-}
-function ProductImagesField({ productId, images, onChange }: ProductImagesFieldProps) {
-  const { isLoading, request } = useApi<productResponse>()
-  const { addToast } = useToast()
-
-  const handleSelect = async (files: File[]) => {
-    try {
-      const updated = await request(productService.addImage(productId, { img: files }))
-      onChange(updated!.images)
-    } catch {
-      addToast("Error al agregar las imágenes, por favor intente más tarde", "error")
-    }
-  }
-
-  const handleRemove = (imageId: number) => {
-    request(productService.removeImage(productId, imageId))
-      .then(updated => onChange(updated!.images))
-      .catch(() => addToast("Error al eliminar la imagen, por favor intente más tarde", "error"))
-  }
-
-  return (
-    <div className="w-full space-y-2 mt-4">
-      <label className="block text-sm/6 font-medium"><strong className="text-red-500 mr-1">*</strong>Imágenes</label>
-      {images.length > 0 && (
-        <div className="space-y-1.5">
-          {images.map((image, index) => (
-            <ImageRow
-              key={image.id}
-              label={`Imagen ${index + 1}`}
-              href={image.img}
-              disabled={isLoading}
-              onRemove={() => handleRemove(image.id)}
-            />
-          ))}
-        </div>
-      )}
-      <MultiImagePicker disabled={isLoading} onSelect={handleSelect} />
-    </div>
-  )
-}
-
 type StagedImage = {
   file: File
   previewUrl: string
 }
 
-type StagedImagesFieldProps = {
+type ImagesFieldProps = {
+  existing: productImageResponse[]
+  removedIds: number[]
   staged: StagedImage[]
-  onChange: (staged: StagedImage[]) => void
+  onRemoveExisting: (id: number) => void
+  onStagedChange: (staged: StagedImage[]) => void
 }
-function StagedImagesField({ staged, onChange }: StagedImagesFieldProps) {
+function ImagesField({ existing, removedIds, staged, onRemoveExisting, onStagedChange }: ImagesFieldProps) {
   const stagedRef = useRef(staged)
   useEffect(() => { stagedRef.current = staged })
 
@@ -576,27 +513,37 @@ function StagedImagesField({ staged, onChange }: StagedImagesFieldProps) {
     stagedRef.current.forEach(s => URL.revokeObjectURL(s.previewUrl))
   }, [])
 
+  const visibleExisting = existing.filter(image => !removedIds.includes(image.id))
+
   const handleSelect = (files: File[]) => {
     const added = files.map(file => ({ file, previewUrl: URL.createObjectURL(file) }))
-    onChange([...staged, ...added])
+    onStagedChange([...staged, ...added])
   }
 
-  const handleRemove = (index: number) => {
+  const handleRemoveStaged = (index: number) => {
     URL.revokeObjectURL(staged[index].previewUrl)
-    onChange(staged.filter((_, i) => i != index))
+    onStagedChange(staged.filter((_, i) => i != index))
   }
 
   return (
     <div className="w-full space-y-2 mt-4">
       <label className="block text-sm/6 font-medium"><strong className="text-red-500 mr-1">*</strong>Imágenes</label>
-      {staged.length > 0 && (
+      {(visibleExisting.length > 0 || staged.length > 0) && (
         <div className="space-y-1.5">
+          {visibleExisting.map((image, index) => (
+            <ImageRow
+              key={image.id}
+              label={`Imagen ${index + 1}`}
+              href={image.img}
+              onRemove={() => onRemoveExisting(image.id)}
+            />
+          ))}
           {staged.map((img, index) => (
             <ImageRow
               key={img.previewUrl}
               label={img.file.name}
               href={img.previewUrl}
-              onRemove={() => handleRemove(index)}
+              onRemove={() => handleRemoveStaged(index)}
             />
           ))}
         </div>
