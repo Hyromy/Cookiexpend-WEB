@@ -2,21 +2,28 @@ import { useCallback, useEffect, useState } from "react"
 import { X } from "lucide-react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
+import useOrderable from "../../hooks/useOrderable"
 import { departmentService, subjectService } from "../../services/cookiexpend"
 import type { ApiRequestError, departmentRequest, departmentResponse, subjectResponse } from "../../types/api"
 import { ActionButton, Button } from "../../components/Button"
 import { Form, TextField } from "../../components/Form"
-import { Table } from "../../components/Table"
+import { DragHandle, Table } from "../../components/Table"
 import { Dialog, Modal } from "../../components/Modal"
 import useToast from "../../hooks/useToast"
 
 export default function Departments() {
-  const { data, error, isLoading, request } = useApi<departmentResponse[]>()
+  const { data, error, isLoading, request, setData } = useApi<departmentResponse[]>()
   const requestData = useCallback(() => request(departmentService.get()), [request])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingDepartment, setEditingDepartment] = useState<departmentResponse | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [deletingDepartment, setDeletingDepartment] = useState<departmentResponse | null>(null)
+  const { moveToEdge, reorder, isFirst, isLast, isBusy, rank, nextOrder } = useOrderable<departmentResponse>(
+    data,
+    setData,
+    (id, order) => departmentService.upd(id, { order } as departmentRequest),
+    requestData
+  )
 
   useEffect(() => { requestData() }, [requestData])
 
@@ -58,10 +65,39 @@ export default function Departments() {
           data={data!}
           exportToExcel
           filename="Departamentos"
+          reorder={{
+            getRowId: d => String(d.id),
+            onReorder: reorder
+          }}
           columns={[
             { accessorKey: "name", header: "Nombre" },
             { accessorKey: "email", header: "Correo" },
-            { accessorKey: "order", header: "Orden" },
+            {
+              id: "order",
+              header: "Orden",
+              cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                  <DragHandle />
+                  <span className="w-5 text-center font-medium">{rank(row.original)}</span>
+                  <div className="flex gap-1">
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="top"
+                      disabled={isBusy || isFirst(row.original)}
+                      cb={() => moveToEdge(row.original, "first")}
+                    />
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="bottom"
+                      disabled={isBusy || isLast(row.original)}
+                      cb={() => moveToEdge(row.original, "last")}
+                    />
+                  </div>
+                </div>
+              )
+            },
             {
               id: "subjects",
               header: "Asuntos",
@@ -95,6 +131,7 @@ export default function Departments() {
       >
         <DepartmentForm
           department={editingDepartment}
+          nextOrder={nextOrder}
           onDone={() => {
             setEditingDepartment(null)
             setIsModalOpen(false)
@@ -115,9 +152,10 @@ export default function Departments() {
 
 type DepartmentFormProps = {
   department: departmentResponse | null
+  nextOrder: () => number
   onDone?: () => void
 }
-function DepartmentForm({ department, onDone }: DepartmentFormProps) {
+function DepartmentForm({ department, nextOrder, onDone }: DepartmentFormProps) {
   const { isLoading, request, setData } = useApi()
   const { addToast } = useToast()
   const [subjects, setSubjects] = useState<subjectResponse[]>(() => department?.subjects ?? [])
@@ -138,6 +176,7 @@ function DepartmentForm({ department, onDone }: DepartmentFormProps) {
 
   const onSubmitHandler = (data: departmentRequest) => {
     clearData(data)
+    if (!department) data.order = nextOrder()
     const validation = validate(data)
     if (validation != true) {
       addToast(validation, "warning")
@@ -173,15 +212,6 @@ function DepartmentForm({ department, onDone }: DepartmentFormProps) {
             name="email"
             label="Correo de contacto"
             defaultValue={department?.email}
-          />
-        </div>
-        <div>
-          <TextField
-            cleanRegex={/\D/}
-            name="order"
-            label="Orden"
-            defaultValue={department?.order}
-            placeholder="0"
           />
         </div>
         <div className="flex justify-center">
@@ -342,7 +372,6 @@ const clearData = (data: departmentRequest) => {
   data.name = data.name?.trim().replace(/\s+/g, " ")
   data.email = data.email?.trim()
   if (!data.email) delete data.email
-  if (!String(data.order ?? "").trim()) delete data.order
 }
 
 const validate = (data: departmentRequest): string | true => {
