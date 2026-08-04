@@ -5,7 +5,6 @@ import {
   type ReactNode,
   type SyntheticEvent,
   type ChangeEvent,
-  type InputHTMLAttributes,
 } from "react"
 import {
   Eye,
@@ -320,110 +319,73 @@ export function SelectField({
   )
 }
 
-type FileFieldSingleProps = {
+type FileFieldProps = {
   name: string
   label?: string
   required?: boolean
   disabled?: boolean
-  multiple?: false
-  onChange?: (file: File | null) => void
+  multiple?: boolean
+  onChange?: (files: File[]) => void
   value?: File | string | null
 }
 
-type FileFieldMultipleProps = {
-  name: string
-  label?: string
-  required?: boolean
-  disabled?: boolean
-  multiple: true
-  onChange?: (files: File[]) => void
-}
-
-type FileFieldProps = FileFieldSingleProps | FileFieldMultipleProps
-
-/**
- * A reusable file input component for forms.
- *
- * @param name The name of the file input field, used as the key in the form data object
- * @param onChange A callback function that receives the selected file (or files, when `multiple`)
- * @param defaultValue The initial value of the file input field, which can be a File object, a string (file path), or null
- *
- * @example
- * <FileField
- *   name="profilePicture"
- *   onChange={(file) => console.log(file)}
- * />
- * <FileField
- *   name="attachments"
- *   multiple
- *   onChange={(files) => console.log(files)}
- * />
- */
-export function FileField(props: FileFieldProps) {
-  const { label, required = false, disabled = false } = props
-  const [fileName, setFileName] = useState<string | null>(null)
+export function FileField({
+  name,
+  label,
+  required = false,
+  disabled = false,
+  multiple = false,
+  onChange,
+  value,
+}: FileFieldProps) {
+  const [fileNames, setFileNames] = useState<string[]>([])
   const [key, setKey] = useState(0)
-
-  const picker = (
-    children: ReactNode,
-    inputKey: number | undefined,
-    inputProps: InputHTMLAttributes<HTMLInputElement>
-  ) => (
-    <label
-      className={clsx(
-        "flex grow items-center gap-2 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 transition-all duration-50 bg-initial",
-        "has-[input:focus-within]:outline-2 has-[input:focus-within]:-outline-offset-2 has-[input:focus-within]:outline-primary",
-        disabled
-          ? "cursor-not-allowed opacity-50"
-          : "cursor-pointer hover:bg-neutral-500/5"
-      )}
-    >
-      <input key={inputKey} type="file" disabled={disabled} className="sr-only" {...inputProps} />
-      <Upload className="size-4 shrink-0 opacity-60 text-primary" />
-      <span className="truncate opacity-80 grow">{children}</span>
-    </label>
-  )
-
-  const fieldLabel = label && (
-    <label className="block text-sm/6 font-medium">
-      {required && <strong className="text-red-500 mr-1">*</strong>}
-      {label}
-    </label>
-  )
-
-  if (props.multiple) {
-    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files ?? [])
-      if (files.length) props.onChange?.(files)
-      setKey(k => k + 1)
-    }
-
-    return (
-      <div className="w-full space-y-1">
-        {fieldLabel}
-        {picker("Agregar archivos...", key, { multiple: true, onChange: handleChange })}
-      </div>
-    )
-  }
-
-  const { value, onChange } = props
   const isUrl = typeof value == "string" && value.trim() != ""
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null
-    setFileName(file ? file.name : null)
-    onChange?.(file)
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    setFileNames(files.map(file => file.name))
+    onChange?.(files)
+    setKey(k => k + 1)
   }
+
+  const pickerLabel = fileNames.length
+    ? fileNames.join(", ")
+    : isUrl
+      ? "Cambiar archivo actual..."
+      : "Seleccionar archivo..."
 
   return (
     <div className="w-full space-y-1">
-      {fieldLabel}
+      {label && (
+        <label className="block text-sm/6 font-medium">
+          {required && <strong className="text-red-500 mr-1">*</strong>}
+          {label}
+        </label>
+      )}
       <div className="flex items-center gap-2">
-        {picker(
-          fileName ? fileName : isUrl ? "Cambiar archivo actual..." : "Seleccionar archivo...",
-          undefined,
-          { name: props.name, required: required && !isUrl, onChange: handleFileChange }
-        )}
+        <label
+          className={clsx(
+            "flex grow items-center gap-2 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 transition-all duration-50 bg-initial",
+            "has-[input:focus-within]:outline-2 has-[input:focus-within]:-outline-offset-2 has-[input:focus-within]:outline-primary",
+            disabled
+              ? "cursor-not-allowed opacity-50"
+              : "cursor-pointer hover:bg-neutral-500/5"
+          )}
+        >
+          <input
+            key={key}
+            name={name}
+            type="file"
+            multiple={multiple}
+            required={required && !isUrl}
+            disabled={disabled}
+            onChange={handleChange}
+            className="sr-only"
+          />
+          <Upload className="size-4 shrink-0 opacity-60 text-primary" />
+          <span className="truncate opacity-80 grow">{pickerLabel}</span>
+        </label>
         {isUrl && (
           <a
             href={value as string}
