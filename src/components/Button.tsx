@@ -15,7 +15,6 @@ type ButtonProps = {
   variant?: buttonVariant
   size?: buttonSize
   noFocusRing?: boolean
-  form?: string
 }
 /**
  * A reusable button component with basic styling and support for different types and states.
@@ -40,7 +39,6 @@ export function Button({
   variant = "primary",
   size = "md",
   noFocusRing = false,
-  form,
 }: ButtonProps) {
   const baseStyles = clsx(
     "hover:cursor-pointer inline-flex items-center justify-center font-medium rounded-lg transition-all duration-300 focus:outline-none active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:scale-100",
@@ -70,7 +68,6 @@ export function Button({
   return (
     <button
       type={type}
-      form={form}
       disabled={disabled}
       onClick={onClick}
       className={combinedClassName}

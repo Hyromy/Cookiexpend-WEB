@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { Download, Image as ImageIcon, Trash, Upload } from "lucide-react"
-import { clsx } from "clsx"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Download, Image as ImageIcon, Trash } from "lucide-react"
 import useApi from "../../hooks/useApi"
 import type { ApiRequestError, categoryResponse, presentationResponse, productImageResponse, productRequest, productResponse } from "../../types/api"
 import { categoryService, presentationService, productService } from "../../services/cookiexpend"
 import useEvent, { useEventOnCUD } from "../../hooks/useEvent"
 import { StateGate } from "../../components/State"
-import { Form, MultiSelectField, SelectField, TextAreaField, TextField, type SelectFieldProps } from "../../components/Form"
+import { FileField, Form, MultiSelectField, SelectField, TextAreaField, TextField, type SelectFieldProps } from "../../components/Form"
 import { ActionButton, Button } from "../../components/Button"
 import { Table } from "../../components/Table"
 import type { eventModel } from "../../types/events"
@@ -105,11 +104,13 @@ export default function Products() {
               header: "Imagen",
               cell: ({ row }) => {
                 const src = row.original.images[0]?.img
-                return src && (
+                return (
                   <ActionButton
                     variant="info"
                     icon="image"
+                    disabled={!src}
                     cb={() => {
+                      if (!src) return
                       setImageSrc(src)
                       setIsImageOpen(true)
                     }}
@@ -260,70 +261,66 @@ function ProductForm({ product, onDone }: ProductFormProps) {
     }).catch((error) => submitErrorHandler(error))
   }
 
-  const formId = product ? `product-form-${product.id}` : "product-form-new"
-
   return (
-    <>
-      <Form id={formId} onSubmit={onSubmitHandler} className="flex flex-col gap-4">
-        <div>
-          <TextField
-            cleanRegex={/[^a-zA-Z0-9-]/}
-            maxLen={18}
-            required
-            name="sku"
-            label="SKU"
-            defaultValue={product?.sku}
-          />
-        </div>
-        <div>
-          <TextField
-            required
-            cleanRegex={/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g}
-            name="name"
-            label="Nombre"
-            defaultValue={product?.name}
-          />
-        </div>
-        <div>
-          <TextField
-            required
-            cleanRegex={/[^0-9.]|(?<=\..*)\./g}
-            name="price"
-            label="Precio"
-            defaultValue={product?.price}
-            placeholder="0.00"
-          />
-        </div>
-        <div>
-          <TextField
-            maxLen={50}
-            name="badge"
-            label="Etiqueta"
-            placeholder="Ej. Nuevo, Oferta"
-            defaultValue={product?.badge}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <CategorySelectField defaultValue={product?.category?.id.toString()} />
-          <PresentationSelectField defaultValue={product?.presentation?.id.toString()} />
-        </div>
-        <div>
-          <TextAreaField
-            required
-            maxLen={500}
-            name="description"
-            label="Descripción"
-            defaultValue={product?.description}
-          />
-        </div>
-        <div>
-          <VariantsField
-            excludeId={product?.id}
-            selected={variantIds}
-            onChange={setVariantIds}
-          />
-        </div>
-      </Form>
+    <Form onSubmit={onSubmitHandler} className="flex flex-col gap-4">
+      <div>
+        <TextField
+          cleanRegex={/[^a-zA-Z0-9-]/}
+          maxLen={18}
+          required
+          name="sku"
+          label="SKU"
+          defaultValue={product?.sku}
+        />
+      </div>
+      <div>
+        <TextField
+          required
+          cleanRegex={/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g}
+          name="name"
+          label="Nombre"
+          defaultValue={product?.name}
+        />
+      </div>
+      <div>
+        <TextField
+          required
+          cleanRegex={/[^0-9.]|(?<=\..*)\./g}
+          name="price"
+          label="Precio"
+          defaultValue={product?.price}
+          placeholder="0.00"
+        />
+      </div>
+      <div>
+        <TextField
+          maxLen={50}
+          name="badge"
+          label="Etiqueta"
+          placeholder="Ej. Nuevo, Oferta"
+          defaultValue={product?.badge}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <CategorySelectField defaultValue={product?.category?.id.toString()} />
+        <PresentationSelectField defaultValue={product?.presentation?.id.toString()} />
+      </div>
+      <div>
+        <TextAreaField
+          required
+          maxLen={500}
+          name="description"
+          label="Descripción"
+          defaultValue={product?.description}
+        />
+      </div>
+      <div>
+        <VariantsField
+          excludeId={product?.id}
+          selected={variantIds}
+          onChange={setVariantIds}
+        />
+      </div>
       <ImagesField
         existing={existingImages}
         removedIds={removedImageIds}
@@ -335,13 +332,12 @@ function ProductForm({ product, onDone }: ProductFormProps) {
         <Button
           className="px-6"
           type="submit"
-          form={formId}
           disabled={isLoading}
         >
           Guardar
         </Button>
       </div>
-    </>
+    </Form>
   )
 }
 
@@ -457,42 +453,6 @@ function ImageRow({ label, href, onRemove, disabled }: ImageRowProps) {
   )
 }
 
-type MultiImagePickerProps = {
-  disabled?: boolean
-  onSelect: (files: File[]) => void
-}
-function MultiImagePicker({ disabled, onSelect }: MultiImagePickerProps) {
-  const [key, setKey] = useState(0)
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? [])
-    if (files.length) onSelect(files)
-    setKey(k => k + 1)
-  }
-
-  return (
-    <label
-      className={clsx(
-        "flex items-center gap-2 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 transition-all duration-50 bg-initial",
-        "has-[input:focus-within]:outline-2 has-[input:focus-within]:-outline-offset-2 has-[input:focus-within]:outline-primary",
-        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-neutral-500/5"
-      )}
-    >
-      <input
-        key={key}
-        type="file"
-        accept="image/*"
-        multiple
-        disabled={disabled}
-        onChange={handleChange}
-        className="sr-only"
-      />
-      <Upload className="size-4 shrink-0 opacity-60 text-primary" />
-      <span className="truncate opacity-80 grow">Agregar imágenes...</span>
-    </label>
-  )
-}
-
 type StagedImage = {
   file: File
   previewUrl: string
@@ -548,7 +508,7 @@ function ImagesField({ existing, removedIds, staged, onRemoveExisting, onStagedC
           ))}
         </div>
       )}
-      <MultiImagePicker onSelect={handleSelect} />
+      <FileField name="images" multiple onChange={handleSelect} />
     </div>
   )
 }
