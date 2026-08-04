@@ -30,7 +30,8 @@ dist-ssr
 
 # Exclude all Markdown files
 *.md
-!/public/docs/*.md
+!/docs/*.md
+!/src/assets/user_manual/**/*.md
 
 # Exclude test files and folders
 test/
