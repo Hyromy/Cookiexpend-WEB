@@ -3,6 +3,29 @@ import "@testing-library/jest-dom"
 import { cleanup } from "@testing-library/react"
 import { afterEach } from "vitest"
 
+const isNodeLocalStorage = globalThis.localStorage && !('getItem' in globalThis.localStorage)
+
+if (isNodeLocalStorage || !globalThis.localStorage) {
+  const mockStorage: Storage = (() => {
+    let store: Record<string, string> = {}
+    return {
+      getItem: (key: string) => store[key] || null,
+      setItem: (key: string, value: string) => { store[key] = String(value) },
+      removeItem: (key: string) => { delete store[key] },
+      clear: () => { store = {} },
+      key: (index: number) => Object.keys(store)[index] || null,
+      get length() { return Object.keys(store).length }
+    }
+  })()
+
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: mockStorage,
+    configurable: true,
+    enumerable: true,
+    writable: true
+  })
+}
+
 afterEach(() => {
   cleanup()
 })
