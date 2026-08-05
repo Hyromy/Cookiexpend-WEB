@@ -329,6 +329,25 @@ type FileFieldProps = {
   value?: File | string | null
 }
 
+/**
+ * A reusable file input component for forms. `onChange` always receives an array of the
+ * selected files, whether `multiple` is set or not.
+ *
+ * @param name The name of the file input field, used as the key in the form data object
+ * @param onChange A callback function that receives the selected files
+ * @param value The current value to display (a File, a string URL, or null), shown as a download link
+ *
+ * @example
+ * <FileField
+ *   name="profilePicture"
+ *   onChange={(files) => console.log(files[0])}
+ * />
+ * <FileField
+ *   name="attachments"
+ *   multiple
+ *   onChange={(files) => console.log(files)}
+ * />
+ */
 export function FileField({
   name,
   label,
