@@ -138,17 +138,24 @@ export type productRequest = {
   sku: string
   name: string
   price: string
-  img?: File
-  description?: string
+  description: string
   badge?: string
-  category?: string | number
-  presentation?: string | number
+  category: string | number
+  presentation: string | number
   variants?: Array<string | number>
+  img?: File[]
+  remove_images?: number[]
 }
 
 export type productVariantResponse = itemResponse & {
   slug: string
   name: string
+}
+
+export type productImageResponse = itemResponse & eventResponse & {
+  product: number
+  img: string
+  order: number
 }
 
 export type productMassiveRequest1 = {
@@ -166,12 +173,12 @@ export type productMassiveRequest = [
   productMassiveRequest2[]
 ]
 
-export type productResponse = Omit<productRequest, "img" | "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
+export type productResponse = Omit<productRequest, "category" | "presentation" | "variants" | "img" | "remove_images"> & itemResponse & eventResponse & {
   slug: string
-  img: string | null
   category: categoryResponse | null
   presentation: presentationResponse | null
   variants: productVariantResponse[]
+  images: productImageResponse[]
 }
 
 // Note: Category/Presentation are only exposed via `{id, label, order[, logo]}` by

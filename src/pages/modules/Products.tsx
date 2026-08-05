@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Download, Image as ImageIcon, Trash } from "lucide-react"
 import useApi from "../../hooks/useApi"
-import type { 
+import type {
   ApiRequestError,
   categoryResponse,
   presentationResponse,
+  productImageResponse,
   productRequest,
   productResponse,
   productMassiveRequest
@@ -26,7 +28,9 @@ const PRODUCT_REQUIRED_ARGS = [
   "sku",
   "name",
   "price",
-  "img",
+  "description",
+  "category",
+  "presentation",
 ] as (keyof productRequest)[]
 
 export default function Products() {
@@ -152,21 +156,25 @@ export default function Products() {
               }
             },
             {
-              accessorKey: "img",
+              id: "img",
               header: "Imagen",
-              cell: ({ getValue }) => getValue() && (
-                <ActionButton
-                  variant="info"
-                  icon="image"
-                  disabled={!getValue()}
-                  cb={() => {
-                    setImageSrc(getValue() as string)
-                    setIsImageOpen(true)
-                  }}
-                />
-              ),
+              cell: ({ row }) => {
+                const src = row.original.images[0]?.img
+                return (
+                  <ActionButton
+                    variant="info"
+                    icon="image"
+                    disabled={!src}
+                    cb={() => {
+                      if (!src) return
+                      setImageSrc(src)
+                      setIsImageOpen(true)
+                    }}
+                  />
+                )
+              },
               meta: {
-                setCellToExport: row => row.img ? `=IMAGE("${row.img}")` : "-"
+                setCellToExport: row => row.images[0]?.img ? `=IMAGE("${row.images[0].img}")` : "-"
               }
             },
             {
@@ -263,6 +271,9 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   const [variantIds, setVariantIds] = useState<string[]>(
     () => product?.variants.map(v => v.id.toString()) ?? []
   )
+  const [existingImages] = useState<productImageResponse[]>(() => product?.images ?? [])
+  const [removedImageIds, setRemovedImageIds] = useState<number[]>([])
+  const [stagedImages, setStagedImages] = useState<StagedImage[]>([])
 
   useEffect(() => { if (product) setData(product) }, [product, setData])
 
@@ -282,10 +293,6 @@ function ProductForm({ product, onDone }: ProductFormProps) {
       addToast("El precio no puede ser mayor a 9999.99", "warning")
       return
     }
-    if (errData?.img?.find(thisIncludes("valid image"))) {
-      addToast("Por favor, seleccione una imagen válida", "warning")
-      return
-    }
 
     addToast("Error al guardar el producto, por favor intente más tarde", "error")
   }
@@ -293,11 +300,15 @@ function ProductForm({ product, onDone }: ProductFormProps) {
   const onSubmitHandler = (data: productRequest) => {
     data.variants = variantIds
     clearData(data)
-    const validation = validate(data)
+    const remainingImages = existingImages.length - removedImageIds.length + stagedImages.length
+    const validation = validate(data, remainingImages > 0)
     if (validation != true) {
       addToast(validation, "warning")
       return
     }
+
+    if (stagedImages.length) data.img = stagedImages.map(s => s.file)
+    if (removedImageIds.length) data.remove_images = removedImageIds;
 
     (product
       ? request(productService.upd(product.id, data))
@@ -328,7 +339,7 @@ function ProductForm({ product, onDone }: ProductFormProps) {
           cleanRegex={/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,\s-]/g}
           name="name"
           label="Nombre"
-          defaultValue={product?.name}  
+          defaultValue={product?.name}
         />
       </div>
       <div>
@@ -339,14 +350,6 @@ function ProductForm({ product, onDone }: ProductFormProps) {
           label="Precio"
           defaultValue={product?.price}
           placeholder="0.00"
-        />
-      </div>
-      <div>
-        <FileField
-          label="Imagen"
-          required={!product}
-          name="img"
-          value={product?.img}
         />
       </div>
       <div>
@@ -364,6 +367,7 @@ function ProductForm({ product, onDone }: ProductFormProps) {
       </div>
       <div>
         <TextAreaField
+          required
           maxLen={500}
           name="description"
           label="Descripción"
@@ -377,7 +381,14 @@ function ProductForm({ product, onDone }: ProductFormProps) {
           onChange={setVariantIds}
         />
       </div>
-      <div className="flex justify-center">
+      <ImagesField
+        existing={existingImages}
+        removedIds={removedImageIds}
+        staged={stagedImages}
+        onRemoveExisting={(id) => setRemovedImageIds(prev => [...prev, id])}
+        onStagedChange={setStagedImages}
+      />
+      <div className="flex justify-center mt-4">
         <Button
           className="px-6"
           type="submit"
@@ -405,9 +416,10 @@ function CategorySelectField({ defaultValue }: CategorySelectFieldProps) {
 
   return (
     <SelectField
+      required
       name="category"
       label="Categoría"
-      placeholder="Sin categoría"
+      placeholder="Selecciona una categoría"
       selected={defaultValue}
       options={options}
     />
@@ -429,6 +441,7 @@ function PresentationSelectField({ defaultValue }: PresentationSelectFieldProps)
 
   return (
     <SelectField
+      required
       name="presentation"
       label="Presentación"
       placeholder="Sin presentación"
@@ -462,6 +475,101 @@ function VariantsField({ excludeId, selected, onChange }: VariantsFieldProps) {
       selected={selected}
       onChange={onChange}
     />
+  )
+}
+
+type ImageRowProps = {
+  label: string
+  href: string
+  onRemove: () => void
+  disabled?: boolean
+}
+function ImageRow({ label, href, onRemove, disabled }: ImageRowProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex grow items-center gap-2 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 bg-initial">
+        <ImageIcon className="size-4 shrink-0 opacity-60 text-primary" />
+        <span className="truncate opacity-80 grow">{label}</span>
+      </div>
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-base sm:text-sm/6 outline-1 -outline-offset-1 hover:bg-neutral-500/5 font-medium transition-colors duration-150 h-full shrink-0"
+        title="Ver imagen"
+      >
+        <Download className="p-1 text-primary opacity-60" />
+      </a>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onRemove}
+        className="flex items-center justify-center gap-1 rounded-md px-3 py-1.5 outline-1 -outline-offset-1 hover:bg-danger/10 transition-colors duration-150 h-full shrink-0 disabled:opacity-50 hover:cursor-pointer"
+        title="Eliminar imagen"
+      >
+        <Trash className="p-1 text-danger opacity-70" />
+      </button>
+    </div>
+  )
+}
+
+type StagedImage = {
+  file: File
+  previewUrl: string
+}
+
+type ImagesFieldProps = {
+  existing: productImageResponse[]
+  removedIds: number[]
+  staged: StagedImage[]
+  onRemoveExisting: (id: number) => void
+  onStagedChange: (staged: StagedImage[]) => void
+}
+function ImagesField({ existing, removedIds, staged, onRemoveExisting, onStagedChange }: ImagesFieldProps) {
+  const stagedRef = useRef(staged)
+  useEffect(() => { stagedRef.current = staged })
+
+  useEffect(() => () => {
+    stagedRef.current.forEach(s => URL.revokeObjectURL(s.previewUrl))
+  }, [])
+
+  const visibleExisting = existing.filter(image => !removedIds.includes(image.id))
+
+  const handleSelect = (files: File[]) => {
+    const added = files.map(file => ({ file, previewUrl: URL.createObjectURL(file) }))
+    onStagedChange([...staged, ...added])
+  }
+
+  const handleRemoveStaged = (index: number) => {
+    URL.revokeObjectURL(staged[index].previewUrl)
+    onStagedChange(staged.filter((_, i) => i != index))
+  }
+
+  return (
+    <div className="w-full space-y-2 mt-4">
+      <label className="block text-sm/6 font-medium"><strong className="text-red-500 mr-1">*</strong>Imágenes</label>
+      {(visibleExisting.length > 0 || staged.length > 0) && (
+        <div className="space-y-1.5">
+          {visibleExisting.map((image, index) => (
+            <ImageRow
+              key={image.id}
+              label={`Imagen ${index + 1}`}
+              href={image.img}
+              onRemove={() => onRemoveExisting(image.id)}
+            />
+          ))}
+          {staged.map((img, index) => (
+            <ImageRow
+              key={img.previewUrl}
+              label={img.file.name}
+              href={img.previewUrl}
+              onRemove={() => handleRemoveStaged(index)}
+            />
+          ))}
+        </div>
+      )}
+      <FileField name="images" multiple onChange={handleSelect} />
+    </div>
   )
 }
 
@@ -510,7 +618,7 @@ function DeleteDialog({
 
 const clearData = (data: productRequest) => {
   const record = data as Record<string, unknown>
-  PRODUCT_REQUIRED_ARGS.filter(k => k != "img").forEach(key => {
+  PRODUCT_REQUIRED_ARGS.forEach(key => {
     const value = record[key]
     if (typeof value == "string" && value) {
       record[key] = value.trim().replace(/\s+/g, " ")
@@ -518,12 +626,11 @@ const clearData = (data: productRequest) => {
   })
 
   if (data.badge) data.badge = data.badge.trim().replace(/\s+/g, " ")
-  if (data.description) data.description = data.description.trim()
 
   data.price = parseFloat(data.price).toFixed(2)
 }
 
-const validate = (data: productRequest): string | true => {
+const validate = (data: productRequest, hasImages: boolean): string | true => {
   if (PRODUCT_REQUIRED_ARGS.some(k => !data[k])) {
     return "Por favor, complete todos los campos obligatorios."
   }
@@ -532,6 +639,9 @@ const validate = (data: productRequest): string | true => {
   }
   if (parseInt(data.sku) <= 0) {
     return "Por favor, ingrese un SKU numérico válido"
+  }
+  if (!hasImages) {
+    return "Por favor, agregue al menos una imagen del producto"
   }
 
   return true
