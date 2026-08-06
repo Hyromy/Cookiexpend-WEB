@@ -324,21 +324,28 @@ type FileFieldProps = {
   label?: string
   required?: boolean
   disabled?: boolean
-  onChange?: (file: File | null) => void
+  multiple?: boolean
+  onChange?: (files: File[]) => void
   value?: File | string | null
 }
 
 /**
- * A reusable file input component for forms.
- * 
+ * A reusable file input component for forms. `onChange` always receives an array of the
+ * selected files, whether `multiple` is set or not.
+ *
  * @param name The name of the file input field, used as the key in the form data object
- * @param onChange A callback function that receives the selected file or null if no file is selected
- * @param defaultValue The initial value of the file input field, which can be a File object, a string (file path), or null
- * 
+ * @param onChange A callback function that receives the selected files
+ * @param value The current value to display (a File, a string URL, or null), shown as a download link
+ *
  * @example
  * <FileField
  *   name="profilePicture"
- *   onChange={(file) => console.log(file)}
+ *   onChange={(files) => console.log(files[0])}
+ * />
+ * <FileField
+ *   name="attachments"
+ *   multiple
+ *   onChange={(files) => console.log(files)}
  * />
  */
 export function FileField({
@@ -346,17 +353,26 @@ export function FileField({
   label,
   required = false,
   disabled = false,
+  multiple = false,
   onChange,
   value,
 }: FileFieldProps) {
-  const [fileName, setFileName] = useState<string | null>(null)
+  const [fileNames, setFileNames] = useState<string[]>([])
+  const [key, setKey] = useState(0)
   const isUrl = typeof value == "string" && value.trim() != ""
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null
-    setFileName(file ? file.name : null)
-    onChange?.(file)
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    setFileNames(files.map(file => file.name))
+    onChange?.(files)
+    setKey(k => k + 1)
   }
+
+  const pickerLabel = fileNames.length
+    ? fileNames.join(", ")
+    : isUrl
+      ? "Cambiar archivo actual..."
+      : "Seleccionar archivo..."
 
   return (
     <div className="w-full space-y-1">
@@ -377,17 +393,17 @@ export function FileField({
           )}
         >
           <input
+            key={key}
             name={name}
             type="file"
+            multiple={multiple}
             required={required && !isUrl}
             disabled={disabled}
-            onChange={handleFileChange}
+            onChange={handleChange}
             className="sr-only"
           />
           <Upload className="size-4 shrink-0 opacity-60 text-primary" />
-          <span className="truncate opacity-80 grow">
-            {fileName ? fileName : isUrl ? "Cambiar archivo actual..." : "Seleccionar archivo..."}
-          </span>
+          <span className="truncate opacity-80 grow">{pickerLabel}</span>
         </label>
         {isUrl && (
           <a

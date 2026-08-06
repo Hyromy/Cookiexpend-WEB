@@ -1,8 +1,18 @@
+export type ApiData = Record<string, unknown> | unknown[] | string | number | boolean | null
+
 export type ApiRequestError = {
   message: string
   status?: number
   data?: unknown
   isNetworkError: boolean
+}
+
+export type massiveSheet<T> = Record<string, T[]>
+
+export type massiveResponse = {
+  duplicated: massiveSheet<string>[]
+  errors: massiveSheet<string>[]
+  inserted: massiveSheet<unknown>[]
 }
 
 export type loginRequest = {
@@ -128,12 +138,13 @@ export type productRequest = {
   sku: string
   name: string
   price: string
-  img?: File
-  description?: string
+  description: string
   badge?: string
-  category?: string | number
-  presentation?: string | number
+  category: string | number
+  presentation: string | number
   variants?: Array<string | number>
+  img?: File[]
+  remove_images?: number[]
 }
 
 export type productVariantResponse = itemResponse & {
@@ -141,12 +152,33 @@ export type productVariantResponse = itemResponse & {
   name: string
 }
 
-export type productResponse = Omit<productRequest, "img" | "category" | "presentation" | "variants"> & itemResponse & eventResponse & {
+export type productImageResponse = itemResponse & eventResponse & {
+  product: number
+  img: string
+  order: number
+}
+
+export type productMassiveRequest1 = {
+  category?: productRequest["category"]
+  name: productRequest["name"]
+  price: productRequest["price"]
+  sku: productRequest["sku"]
+}
+export type productMassiveRequest2 = {
+  sku: productRequest["sku"]
+  variant_sku: productRequest["sku"]
+}
+export type productMassiveRequest = [
+  productMassiveRequest1[],
+  productMassiveRequest2[]
+]
+
+export type productResponse = Omit<productRequest, "category" | "presentation" | "variants" | "img" | "remove_images"> & itemResponse & eventResponse & {
   slug: string
-  img: string | null
   category: categoryResponse | null
   presentation: presentationResponse | null
   variants: productVariantResponse[]
+  images: productImageResponse[]
 }
 
 // Note: Category/Presentation are only exposed via `{id, label, order[, logo]}` by

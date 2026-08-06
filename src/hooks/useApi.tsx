@@ -5,9 +5,7 @@ import {
   useState,
   useCallback
 } from "react"
-import type { ApiRequestError } from "../types/api"
-
-type ApiData = Record<string, unknown> | unknown[] | string | number | boolean | null
+import type { ApiRequestError, ApiData } from "../types/api"
 
 type RequestResult<TResults extends unknown[]> =
   TResults extends [Promise<infer TSingle>]

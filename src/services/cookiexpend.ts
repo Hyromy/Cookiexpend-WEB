@@ -30,7 +30,7 @@ const buildFormData = (obj: Record<string, unknown>): FormData => {
     if (value === undefined || value === null || value === "") continue
 
     if (Array.isArray(value)) {
-      value.forEach(item => fd.append(key, String(item)))
+      value.forEach(item => fd.append(key, item instanceof Blob ? item : String(item)))
     } else {
       fd.append(key, value as string | Blob)
     }
@@ -147,6 +147,14 @@ class ProductService {
     return api.post(
       this.endpoint,
       buildFormData(data),
+      { headers: { "Content-Type": undefined } }
+    )
+  }
+
+  newMassive(tables: apiType.productMassiveRequest): Promise<apiType.massiveResponse> {
+    return api.post(
+      this.endpoint + "massive/",
+      tables,
       { headers: { "Content-Type": undefined } }
     )
   }

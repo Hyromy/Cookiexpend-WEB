@@ -16,6 +16,9 @@ const mockClient = {
   patch: vi.fn(),
   delete: vi.fn(),
   interceptors: {
+    request: {
+      use: vi.fn(),
+    },
     response: {
       use: vi.fn((onFulfilled, onRejected) => {
         mockResponseHandlers = { onFulfilled, onRejected }
@@ -207,7 +210,7 @@ describe("cookiexpend.ts", () => {
     })
 
     it("creates product", async () => {
-      const payload: productRequest = { name: "Cookie", price: "10", sku: "1" }
+      const payload: productRequest = { name: "Cookie", price: "10", sku: "1", description: "desc", category: 1, presentation: 1 }
       mockClient.post.mockResolvedValueOnce({ data: {} })
       await productService.new(payload)
       expect(mockClient.post).toHaveBeenCalledWith(
@@ -218,7 +221,7 @@ describe("cookiexpend.ts", () => {
     })
 
     it("updates product", async () => {
-      const payload: productRequest = { name: "Cookie", price: "12", sku: "1" }
+      const payload: productRequest = { name: "Cookie", price: "12", sku: "1", description: "desc", category: 1, presentation: 1 }
       mockClient.patch.mockResolvedValueOnce({ data: {} })
       await productService.upd(7, payload)
       expect(mockClient.patch).toHaveBeenCalledWith(
