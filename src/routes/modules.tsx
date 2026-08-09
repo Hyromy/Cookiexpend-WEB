@@ -5,7 +5,8 @@ import {
   ShoppingCart,
   Factory as FactoryIcon,
   Truck,
-  Blocks
+  Blocks,
+  Gauge
 } from "lucide-react"
 import { lazy } from "react"
 
@@ -19,6 +20,7 @@ const Sales = lazy(() => import("../pages/modules/Sales"))
 const Factories = lazy(() => import("../pages/modules/Factories"))
 const Deliveries = lazy(() => import("../pages/modules/Deliveries"))
 const Inventories = lazy(() => import("../pages/modules/Inventories"))
+const Measurements = lazy(() => import("../pages/modules/Measurements"))
 const Redirect = lazy(() => import("../pages/modules/Redirect"))
 
 export const MODULE_ROUTES: AppModuleRoute[] = [
@@ -55,6 +57,13 @@ export const MODULE_ROUTES: AppModuleRoute[] = [
     element: <Inventories />,
     label: "Inventarios",
     icon: <Blocks />,
+    allowRoles: ["Factory manager", "Store manager"],
+  },
+  {
+    path: PATHS.measurements,
+    element: <Measurements />,
+    label: "Mediciones",
+    icon: <Gauge />,
     allowRoles: ["Factory manager", "Store manager"],
   },
   {

@@ -10,5 +10,6 @@ export const PATHS = {
   factories: "/plantas",
   deliveries: "/repartos",
   inventories: "/inventarios",
+  measurements: "/mediciones",
   loadingPanel: "/cargando"
 } as const

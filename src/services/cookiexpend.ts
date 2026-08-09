@@ -206,6 +206,14 @@ class InventoryService {
   }
 }
 
+class MeasurementService {
+  readonly endpoint = "api/sistema-medicion-iot/measurements/"
+
+  get(): Promise<apiType.measurementResponse[]> {
+    return api.get(this.endpoint).then(response => response.data)
+  }
+}
+
 class SaleService {
   readonly endpoint = "api/store-mgmt/sells/"
 
@@ -251,3 +259,4 @@ export const deliveryService = Object.freeze(new DeliveryService())
 export const inventoryService = Object.freeze(new InventoryService())
 export const saleService = Object.freeze(new SaleService())
 export const profileService = Object.freeze(new ProfileService())
+export const measurementService = Object.freeze(new MeasurementService())

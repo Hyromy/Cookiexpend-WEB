@@ -276,3 +276,17 @@ export type paymentResponse = itemResponse & eventResponse & {
 export type paymentMethodResponse = itemResponse & eventResponse & {
   name: "cash"
 }
+
+export type measurementResponse = {
+    id: number
+    station: string
+    process: string
+    time_ms: number
+    time_seconds: number
+    created_at: string
+}
+
+export type measurementListResponse = {
+    success: boolean
+    data: measurementResponse[]
+}
