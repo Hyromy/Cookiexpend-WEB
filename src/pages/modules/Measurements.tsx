@@ -5,14 +5,18 @@ import {
   Clock,
   Factory,
   Filter,
-  RotateCcw,
 } from "lucide-react"
 
 import { StateGate } from "../../components/State"
 import { Table } from "../../components/Table"
 import useApi from "../../hooks/useApi"
 import { measurementService } from "../../services/cookiexpend"
-import type { measurementResponse } from "../../types/api"
+import { SelectField } from "../../components/Form" 
+import { Button } from "../../components/Button"
+import type {
+  measurementResponse,
+  measurementListResponse,
+} from "../../types/api"
 
 export default function Measurements() {
   const {
@@ -20,7 +24,7 @@ export default function Measurements() {
     error,
     isLoading,
     request,
-  } = useApi<measurementResponse[]>()
+  } = useApi<measurementListResponse>()
 
   const [selectedStation, setSelectedStation] = useState("all")
   const [selectedProcess, setSelectedProcess] = useState("all")
@@ -33,29 +37,24 @@ export default function Measurements() {
     requestData()
   }, [requestData])
 
-  const measurements = data || []
+const measurements = useMemo(() => data?.data ?? [], [data?.data]) 
 
-  /*
-   * Estaciones disponibles
-   */
-  const stations = useMemo(() => {
-    return Array.from(
-      new Set(measurements.map(measurement => measurement.station))
-    ).sort()
-  }, [measurements])
+  const stations = useMemo(
+    () =>
+      Array.from(
+        new Set(measurements.map(measurement => measurement.station))
+      ).sort(),
+    [measurements]
+  )
 
-  /*
-   * Procesos disponibles
-   */
-  const processes = useMemo(() => {
-    return Array.from(
-      new Set(measurements.map(measurement => measurement.process))
-    ).sort()
-  }, [measurements])
+  const processes = useMemo(
+    () =>
+      Array.from(
+        new Set(measurements.map(measurement => measurement.process))
+      ).sort(),
+    [measurements]
+  )
 
-  /*
-   * Aplicar filtros
-   */
   const filteredMeasurements = useMemo(() => {
     return measurements.filter(measurement => {
       const stationMatches =
@@ -74,9 +73,6 @@ export default function Measurements() {
     selectedProcess,
   ])
 
-  /*
-   * Estadísticas
-   */
   const statistics = useMemo(() => {
     if (filteredMeasurements.length === 0) {
       return {
@@ -88,28 +84,20 @@ export default function Measurements() {
     }
 
     const times = filteredMeasurements.map(
-      measurement => Number(measurement.time_seconds)
+      measurement => Number(measurement.time_ms) / 1000
     )
 
     const total = times.length
 
-    const average =
-      times.reduce((sum, time) => sum + time, 0) / total
-
-    const minimum = Math.min(...times)
-    const maximum = Math.max(...times)
-
     return {
       total,
-      average,
-      minimum,
-      maximum,
+      average:
+        times.reduce((sum, time) => sum + time, 0) / total,
+      minimum: Math.min(...times),
+      maximum: Math.max(...times),
     }
   }, [filteredMeasurements])
 
-  /*
-   * Limpiar filtros
-   */
   const clearFilters = () => {
     setSelectedStation("all")
     setSelectedProcess("all")
@@ -127,225 +115,216 @@ export default function Measurements() {
         onRetry: requestData,
       }}
     >
-      <div className="space-y-6">
-
-        {/* Encabezado */}
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">
-            Mediciones
-          </h1>
-
-          <p className="mt-1 text-sm text-muted-foreground">
-            Historial de tiempos registrados por las estaciones de medición.
-          </p>
-        </div>
-
-        {/* Tarjetas estadísticas */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-          <StatCard
-            title="Total de mediciones"
-            value={statistics.total.toLocaleString()}
-            description="Registros encontrados"
-            icon={<Activity size={22} />}
-          />
-
-          <StatCard
-            title="Tiempo promedio"
-            value={`${statistics.average.toFixed(3)} s`}
-            description="Promedio de duración"
-            icon={<Clock size={22} />}
-          />
-
-          <StatCard
-            title="Tiempo mínimo"
-            value={`${statistics.minimum.toFixed(3)} s`}
-            description="Menor duración registrada"
-            icon={<BarChart3 size={22} />}
-          />
-
-          <StatCard
-            title="Tiempo máximo"
-            value={`${statistics.maximum.toFixed(3)} s`}
-            description="Mayor duración registrada"
-            icon={<Clock size={22} />}
-          />
-
-        </div>
-
-        {/* Filtros */}
-        <div className="rounded-xl border border-muted/50 bg-bg/40 p-4">
-
-          <div className="mb-4 flex items-center gap-2">
-            <Filter size={18} />
-
-            <h2 className="font-medium text-fg">
-              Filtros
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-
-            {/* Estación */}
-            <div>
-              <label
-                htmlFor="station-filter"
-                className="mb-1.5 block text-sm font-medium text-fg"
-              >
-                Estación
-              </label>
-
-              <select
-                id="station-filter"
-                value={selectedStation}
-                onChange={event =>
-                  setSelectedStation(event.target.value)
-                }
-                className="w-full rounded-lg border border-muted/50 bg-bg px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="all">
-                  Todas las estaciones
-                </option>
-
-                {stations.map(station => (
-                  <option
-                    key={station}
-                    value={station}
-                  >
-                    {station}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Proceso */}
-            <div>
-              <label
-                htmlFor="process-filter"
-                className="mb-1.5 block text-sm font-medium text-fg"
-              >
-                Proceso
-              </label>
-
-              <select
-                id="process-filter"
-                value={selectedProcess}
-                onChange={event =>
-                  setSelectedProcess(event.target.value)
-                }
-                className="w-full rounded-lg border border-muted/50 bg-bg px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="all">
-                  Todos los procesos
-                </option>
-
-                {processes.map(process => (
-                  <option
-                    key={process}
-                    value={process}
-                  >
-                    {process}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Limpiar */}
-            <div className="flex items-end">
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-muted/50 bg-bg/40 px-4 py-2 text-sm font-medium transition-all hover:bg-muted/20 active:scale-[0.98]"
-              >
-                <RotateCcw size={16} />
-
-                Limpiar filtros
-              </button>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Tabla */}
-        <div className="rounded-xl border border-muted/50 bg-bg/40 p-4">
-
-          <div className="mb-4 flex items-center gap-2">
-            <Factory size={18} />
-
-            <div>
-              <h2 className="font-medium text-fg">
-                Historial de mediciones
-              </h2>
-
-              <p className="text-xs text-muted-foreground">
-                {filteredMeasurements.length} mediciones encontradas
-              </p>
-            </div>
-          </div>
-
-          <Table
-            data={filteredMeasurements}
-            exportToExcel={{
-              sheetName: "Mediciones",
-            }}
-            filename="Mediciones"
-            columns={[
-              {
-                accessorKey: "station",
-                header: "Estación",
-              },
-
-              {
-                accessorKey: "process",
-                header: "Proceso",
-              },
-
-              {
-                accessorKey: "time_ms",
-                header: "Tiempo (ms)",
-              },
-
-              {
-                accessorKey: "time_seconds",
-                header: "Tiempo (s)",
-                cell: ({ getValue }) => {
-                  const value = Number(getValue())
-
-                  return `${value.toFixed(3)} s`
-                },
-              },
-
-              {
-                accessorKey: "created_at",
-                header: "Fecha de medición",
-                cell: ({ getValue }) => {
-                  const value = getValue()
-
-                  if (!value) {
-                    return "-"
-                  }
-
-                  const date = new Date(String(value))
-
-                  if (Number.isNaN(date.getTime())) {
-                    return String(value)
-                  }
-
-                  return date.toLocaleString("es-MX", {
-                    dateStyle: "short",
-                    timeStyle: "medium",
-                  })
-                },
-              },
-            ]}
-          />
-
-        </div>
-
-      </div>
+      <MeasurementView
+        filteredMeasurements={filteredMeasurements}
+        statistics={statistics}
+        stations={stations}
+        processes={processes}
+        selectedStation={selectedStation}
+        selectedProcess={selectedProcess}
+        setSelectedStation={setSelectedStation}
+        setSelectedProcess={setSelectedProcess}
+        clearFilters={clearFilters}
+      />
     </StateGate>
   )
 }
+
+type MeasurementViewProps = {
+  filteredMeasurements: measurementResponse[]
+  statistics: {
+    total: number
+    average: number
+    minimum: number
+    maximum: number
+  }
+  stations: string[]
+  processes: string[]
+  selectedStation: string
+  selectedProcess: string
+  setSelectedStation: (value: string) => void
+  setSelectedProcess: (value: string) => void
+  clearFilters: () => void
+}
+
+function MeasurementView({
+  filteredMeasurements,
+  statistics,
+  stations,
+  processes,
+  selectedStation,
+  selectedProcess,
+  setSelectedStation,
+  setSelectedProcess,
+  clearFilters,
+}: MeasurementViewProps) {
+  return (
+    <div className="space-y-6">
+
+      <div>
+        <div className="text-2xl font-semibold text-fg">
+          Mediciones
+        </div>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Historial de tiempos registrados por las estaciones de medición.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total de mediciones"
+          value={statistics.total.toLocaleString()}
+          description="Registros encontrados"
+          icon={<Activity size={22} />}
+        />
+
+        <StatCard
+          title="Tiempo promedio"
+          value={`${statistics.average.toFixed(3)} s`}
+          description="Promedio de duración"
+          icon={<Clock size={22} />}
+        />
+
+        <StatCard
+          title="Tiempo mínimo"
+          value={`${statistics.minimum.toFixed(3)} s`}
+          description="Menor duración registrada"
+          icon={<BarChart3 size={22} />}
+        />
+
+        <StatCard
+          title="Tiempo máximo"
+          value={`${statistics.maximum.toFixed(3)} s`}
+          description="Mayor duración registrada"
+          icon={<Clock size={22} />}
+        />
+      </div>
+
+      <div className="rounded-xl border border-muted/50 bg-bg/40 p-4">
+        <div className="mb-4 flex items-center gap-2">
+          <Filter size={18} />
+
+          <h2 className="font-medium text-fg">
+            Filtros
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+          <SelectField
+            name="station-filter"
+            label="Estación"
+            selected={selectedStation}
+            options={[
+              {
+                value: "all",
+                label: "Todas las estaciones",
+              },
+              ...stations.map(station => ({
+                value: station,
+                label: station,
+              })),
+            ]}
+            onChange={setSelectedStation}
+          />
+
+          <SelectField
+            name="process-filter"
+            label="Proceso"
+            selected={selectedProcess}
+            options={[
+              {
+                value: "all",
+                label: "Todos los procesos",
+              },
+              ...processes.map(process => ({
+                value: process,
+                label: process,
+              })),
+            ]}
+            onChange={setSelectedProcess}
+          />
+
+          <div className="flex items-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={clearFilters}
+            >
+              Limpiar filtros
+            </Button>
+          </div>
+
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-muted/50 bg-bg/40 p-4">
+
+        <div className="mb-4 flex items-center gap-2">
+          <Factory size={18} />
+
+          <div>
+            <h2 className="font-medium text-fg">
+              Historial de mediciones
+            </h2>
+
+            <p className="text-xs text-muted-foreground">
+              {filteredMeasurements.length} mediciones encontradas
+            </p>
+          </div>
+        </div>
+
+        <Table
+          data={filteredMeasurements}
+          exportToExcel={{
+            sheetName: "Mediciones",
+          }}
+          filename="Mediciones"
+          columns={[
+            {
+              accessorKey: "station",
+              header: "Estación",
+            },
+            {
+              accessorKey: "process",
+              header: "Proceso",
+            },
+            {
+              accessorKey: "time_ms",
+              header: "Tiempo (ms)",
+            },
+            {
+              accessorKey: "created_at",
+              header: "Fecha de medición",
+              cell: ({ getValue }) => {
+                const value = getValue()
+
+                if (!value) {
+                  return "-"
+                }
+
+                const date = new Date(String(value))
+
+                if (Number.isNaN(date.getTime())) {
+                  return String(value)
+                }
+
+                return date.toLocaleString("es-MX", {
+                  dateStyle: "short",
+                  timeStyle: "medium",
+                })
+              },
+            },
+          ]}
+        />
+
+      </div>
+    </div>
+  )
+}
+
 
 /*
  * Tarjeta de estadística

@@ -209,8 +209,8 @@ class InventoryService {
 class MeasurementService {
   readonly endpoint = "api/sistema-medicion-iot/measurements/"
 
-  get(): Promise<apiType.measurementResponse[]> {
-    return api.get(this.endpoint).then(response => response.data)
+  get(): Promise<apiType.measurementListResponse> {
+    return api.get<apiType.measurementListResponse>(this.endpoint)
   }
 }
 

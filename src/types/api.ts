@@ -282,7 +282,6 @@ export type measurementResponse = {
     station: string
     process: string
     time_ms: number
-    time_seconds: number
     created_at: string
 }
 
