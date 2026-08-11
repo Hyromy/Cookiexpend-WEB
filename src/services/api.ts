@@ -52,36 +52,18 @@ const withTimeout = (config?: AxiosRequestConfig) => ({
 })
 
 export const api = {
-  get: <T = unknown>(
-    url: string,
-    config?: AxiosRequestConfig
-  ): Promise<T> =>
-    client.get(url, withTimeout(config)) as unknown as Promise<T>,
+  get: <T>(url: string, config?: AxiosRequestConfig) =>
+    client.get<T>(url, withTimeout(config)) as unknown as Promise<T>,
 
-  post: <T = unknown>(
-    url: string,
-    data?: unknown,
-    config?: AxiosRequestConfig
-  ): Promise<T> =>
-    client.post(url, data, withTimeout(config)) as unknown as Promise<T>,
-
-  put: <T = unknown>(
-    url: string,
-    data?: unknown,
-    config?: AxiosRequestConfig
-  ): Promise<T> =>
-    client.put(url, data, withTimeout(config)) as unknown as Promise<T>,
-
-  patch: <T = unknown>(
-    url: string,
-    data?: unknown,
-    config?: AxiosRequestConfig
-  ): Promise<T> =>
-    client.patch(url, data, withTimeout(config)) as unknown as Promise<T>,
-
-  delete: <T = unknown>(
-    url: string,
-    config?: AxiosRequestConfig
-  ): Promise<T> =>
-    client.delete(url, withTimeout(config)) as unknown as Promise<T>,
+  post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    client.post<T>(url, data, withTimeout(config)) as unknown as Promise<T>,
+  
+  put: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    client.put<T>(url, data, withTimeout(config)) as unknown as Promise<T>,
+  
+  patch: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    client.patch<T>(url, data, withTimeout(config)) as unknown as Promise<T>,
+  
+  delete: <T>(url: string, config?: AxiosRequestConfig) =>
+    client.delete<T>(url, withTimeout(config)) as unknown as Promise<T>,
 }
