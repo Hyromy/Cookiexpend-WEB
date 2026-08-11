@@ -14,4 +14,6 @@ export type AppModuleRoute = {
   label: string
   icon: ReactNode
   allowRoles: userRolePermission[]
+  /** Optional sidebar grouping — entries sharing a group are clustered under a collapsible header. */
+  group?: string
 }
