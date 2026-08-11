@@ -31,7 +31,7 @@ jobs:
             docker run -d \
               --name ${{ vars.CONTAINER_NAME }} \
               --restart always \
-              -p ${{ vars.VPS_PORT }}:80 \
+              -p ${{ vars.VPS_PORT }}:3000 \
               ${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:latest
 
             docker image prune -f

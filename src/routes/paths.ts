@@ -10,6 +10,7 @@ export const PATHS = {
   factories: "/plantas",
   deliveries: "/repartos",
   inventories: "/inventarios",
+  measurements: "/mediciones",
   loadingPanel: "/cargando",
   categories: "/categorias",
   presentations: "/presentaciones",
@@ -17,5 +18,5 @@ export const PATHS = {
   faqs: "/faq",
   departments: "/departamentos",
   brands: "/marcas",
-  retailers: "/retailers"
+  retailers: "/revendedores"
 } as const
