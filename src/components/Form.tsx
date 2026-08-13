@@ -365,7 +365,7 @@ export function FileField({
     const files = Array.from(e.target.files ?? [])
     setFileNames(files.map(file => file.name))
     onChange?.(files)
-    setKey(k => k + 1)
+    if (multiple) setKey(k => k + 1)
   }
 
   const pickerLabel = fileNames.length
