@@ -449,6 +449,12 @@ export function TextAreaField({
   disabled = false,
 }: TextAreaFieldProps) {
   const [value, setValue] = useState(defaultValue)
+  const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue)
+
+  if (defaultValue != prevDefaultValue) {
+    setPrevDefaultValue(defaultValue)
+    setValue(defaultValue)
+  }
 
   const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
     let inputValue = e.currentTarget.value
