@@ -7,6 +7,7 @@ Sistema de control y supervisión de inventarios en entornos distribuidos (inter
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-06B6D4?logo=tailwindcss&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white)
 
 ## Inicio Rápido
 
@@ -22,15 +23,15 @@ Realiza una instalación rápida del proyecto y ejecuta en modo desarrollo.
 
 2. Instalar dependencias
    ```sh
-   npm i
+   pnpm i
    ```
 
 3. Ejecutar servidor
    ```sh
-   npm run dev
+   pnpm dev
    ```
 
-Para más detalles sobre su desarrollo y mantenimiento consulte el [manual de desarrollador](./public/docs/onboarding.md).
+Para más detalles sobre su desarrollo y mantenimiento consulte el [manual de desarrollador](./docs/onboarding.md).
 
 ## Variables de entorno y configuración
 
@@ -38,10 +39,10 @@ Configura los parámetros principales de la aplicación mediante variables de en
 
 Copia el archivo `.env.example` y pegalo en la raíz del proyecto con el nombre de `.env`, configura las variables según tus necesidades.
 
-Para más detalles sobre la configuración consulte el [manual de configuración](./public/docs/virtual-env.md).
+Para más detalles sobre la configuración consulte el [manual de configuración](./docs/virtual-env.md).
 
 ## Despliegue (Docker)
 
 Ejecuta la aplicación y sus dependencias en contenedores usando Docker.
 
-Para más detalles sobre el despliegue consulte el [manual de operaciones](./public/docs/runbook.md).
+Para más detalles sobre el despliegue consulte el [manual de operaciones](./docs/runbook.md).
