@@ -18,5 +18,6 @@ export const PATHS = {
   faqs: "/faq",
   departments: "/departamentos",
   brands: "/marcas",
-  retailers: "/revendedores"
+  retailers: "/revendedores",
+  userManual: "/manual-de-usuario"
 } as const
