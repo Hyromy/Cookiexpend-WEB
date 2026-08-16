@@ -9,6 +9,7 @@ import recoverAccountMD from "../../assets/user_manual/common/recover_account.md
 import generalNavigation from "../../assets/user_manual/common/general_navigation.md?raw"
 import massive from "../../assets/user_manual/common/massive.md?raw"
 import exportData from "../../assets/user_manual/common/export_data.md?raw"
+import notifies from "../../assets/user_manual/common/notifies.md?raw"
 
 const images = import.meta.glob(
   "../../assets/user_manual/imgs/*",
@@ -31,6 +32,7 @@ const allManuals: Record<string, string> = {
   "recover_account": recoverAccountMD,
   "massive": massive,
   "export_data": exportData,
+  "notifies": notifies,
 }
 
 export default function UserManual() {

@@ -1,8 +1,15 @@
-# Manual de usuario "Responsable de planta" <!-- omit in toc -->
+# Manual de usuario: Responsable de planta
 
-El presente manual de usuario esta destinado para el usuario __Responsable de planta__, el cual esta destinado a la gestión general de la plataforma, se estructuran el contenido del documento de acuerdo a la disponibilidad de módulos de la barra lateral.
+Este manual explica lo básico para operar la plataforma como responsable de planta.
 
-Dentro de la plataforma existen otras interacciones como: [iniciar sesión](./common/login.md), [recuperar cuenta](./common/recover_account.md), [navegación general](./common/general_navigation.md), [actualizar información personal](./common/profile_info.md), [carga masiva](./common/massive.md) y [exportar información](./common/export_data.md). Consulte sus respectivos manuales para más información.
+También puedes consultar:
+- [Inicio de sesión](./common/login.md)
+- [Recuperar cuenta](./common/recover_account.md)
+- [Navegación general](./common/general_navigation.md)
+- [Información personal](./common/profile_info.md)
+- [Notificaciones](./common/notifies.md)
+- [Carga masiva](./common/massive.md)
+- [Exportar información](./common/export_data.md)
 
 ## Índice <!-- omit in toc -->
 - [Plantas](#plantas)
@@ -10,88 +17,135 @@ Dentro de la plataforma existen otras interacciones como: [iniciar sesión](./co
 - [Productos](#productos)
 - [Repartos](#repartos)
 - [Inventarios](#inventarios)
+- [Mediciones](#mediciones)
 - [Ventas](#ventas)
 - [Usuarios](#usuarios)
 
-### Plantas
+## Plantas
 
-Este módulo permite administrar las plantas de producción registradas en el sistema. En la tabla principal se visualiza la información básica de cada una (como su nombre y dirección). Dentro de este modulo pueden realizarse las siguientes operaciones:
+En este módulo puedes ver todas las plantas registradas y administrarlas.
 
-- Para registrar una nueva instalación, hacer clic en el botón rojo __"Agregar Planta"__.
-- En la columna de _Acciones_, se ubican botones para __editar__ (icono de lápiz) o __eliminar__ (icono de bote de basura) cualquier registro existente.
+### ¿Qué puedes hacer?
+- Agregar una planta con el botón Agregar Planta.
+- Ver nombre, municipio, colonia, calle y número.
+- Editar un registro con el botón de lápiz.
+- Eliminar un registro con el botón de basura.
 
 ![img](./imgs/factory_module.png)
 
 ---
 
-### Expendios
+## Expendios
 
-Funciona de manera idéntica al [módulo de Plantas](#plantas), pero está enfocado exclusivamente en los puntos de venta. 
+Este módulo funciona igual que Plantas, pero para los expendios.
 
-Aquí se consulta la lista de todas los expendios, registrar nuevos establecimientos utilizando el botón **"Agregar Expendio"**, y mantener su información actualizada utilizando los botones de edición y eliminación.
+### ¿Qué puedes hacer?
+- Consultar la lista de expendios.
+- Agregar nuevos expendios.
+- Editar su información.
+- Eliminar expendios que ya no sean necesarios.
 
 ![img](./imgs/store_module.png)
 
 ---
 
-### Productos
+## Productos
 
-Este actúa como catálogo central de mercancía. La tabla te muestra de un vistazo detalles clave como el código (SKU), el nombre, el precio y si el producto tiene variantes (las cuales puedes desplegar haciendo clic en la flecha de la columna *Variantes*), entre otros.
+Este módulo actúa como catálogo central de mercancía.
 
-Existen dos formas de agregar productos:
-1. **Uno por uno:** Usando el botón rojo **"Agregar Producto"**.
-2. **Por volumen:** Usando el botón amarillo **"Carga masiva"** si se necesitan subir muchos productos a la vez desde un archivo excel. _(Consulte el [manual de carga masiva](./common/massive.md) para mas detalles)_
+### ¿Qué puedes ver?
+- Código o SKU.
+- Nombre del producto.
+- Precio.
+- Variantes, si existen.
 
-![img](./imgs/_)
+### ¿Qué puedes hacer?
+- Agregar productos uno por uno.
+- Usar la carga masiva para subir muchos productos desde un archivo Excel.
 
----
-
-### Repartos
-
-Este módulo es parte del control logístico. Aquí se visualiza el historial general de los envíos de mercancía desde las plantas hacia los expendios. 
-
-Cada envío tiene una etiqueta de color que indica su __estado__, estos pueden ser: 
-- __Pendiente__: El reparto esta registrado y pendiente de confirmación sobre su contenido a enviar.
-- __En progreso__: El reparto ha confirmado el contenido del envío y se espera recepción por parte del expendio.
-- __Completado__: El reparto fue recibido correctamente por parte del expendio y el contenido del envío ahora forma parte del inventario del expendio.
-- __Cancelado__: El reparto tuvo un problema en alguna etapa del envío.
-
-Los repartos que se encuentren en el estado: __Pendiente__ o __Cancelado__ pueden actualizar su contenido y destino con el botón de __Editar__.
-
-Los repartos que no hayan sido completados pueden avanzar de etapa _(botón verde)_ o retroceder _(botón rojo)_ según sea necesario.
+> Consulta el manual de carga masiva para más detalles.
 
 ![img](./imgs/_)
 
 ---
 
-### Inventarios
+## Repartos
 
-Desde este módulo se consultan las existencias de mercancía por cada expendio. Es una pantalla de consulta rápida donde el sistema muestra los resultados de los productos en los inventarios, a fin de permitir tomar decisiones informadas sobre la producción o próximos repartos.
+Aquí se administra el movimiento de productos desde la planta hacia los expendios.
 
-![img](./imgs/_)
+### Estados de un reparto
+- Pendiente: está registrado y esperando confirmación.
+- En progreso: ya fue confirmado y está en tránsito.
+- Completado: fue recibido correctamente.
+- Cancelado: tuvo un problema y se detuvo.
 
-### Ventas
-
-Aquí se refleja el historial de todas las ventas realizadas por los cajeros en los distintos expendios, mostrando la fecha, el cajero responsable y el total cobrado. 
-
-Es importante tener en cuenta que __el sistema actualmente solo soporta y registra transacciones realizadas en efectivo__.
-
-Si es necesario revisar el detalle de una compra específica, hacer click en el botón azul (icono de ticket) en la columna de __Acciones__ se muestra una previsualización del ticket impreso para esa venta.
+### Acciones disponibles
+- Si un reparto está pendiente o cancelado, puedes editarlo.
+- Si aún no está completado, puedes moverlo a otro estado con los botones de acción.
+- Puedes revisar el contenido del envío y su destino.
 
 ![img](./imgs/_)
 
 ---
 
-### Usuarios
+## Inventarios
 
-Este módulo está destinado a la administración de las cuentas del personal que tiene acceso al sistema. 
+Este módulo muestra la existencia de productos por expendio.
 
-Al usar el botón __"Agregar Usuario"__, se puede registrar a nuevos colaboradores, asignarles un __Rol__ como Responsable de planta o Responsable de expendio y vincularlos directamente a la planta o expendio donde trabajan, para asegurar que solo vean la información que les corresponde. _(Para el caso de registrar nuevos responsables de planta, estos tienen la misma cantidad de permisos entre otros responsables de planta, solo cambia a que planta están asignados)_.
+### ¿Para qué sirve?
+- Revisar cuánto producto hay disponible.
+- Verificar inventario por establecimiento.
+- Ayudar a decidir si se requiere más producción o más envíos.
 
-Al momento de registrar un nuevo usuario, este recibirá un correo electrónico con instrucciones para acceder a su cuenta.
-
-![img](./imgs/users_module.png)
+![img](./imgs/_)
 
 ---
 
-_Version de manual: 1.0_
+## Mediciones
+
+Aquí se revisa el historial de tiempos registrados por estaciones o procesos.
+
+### ¿Qué puedes ver?
+- Total de mediciones.
+- Tiempo promedio.
+- Tiempo mínimo.
+- Tiempo máximo.
+
+También puedes filtrar por estación y por proceso para comparar resultados.
+
+![img](./imgs/_)
+
+---
+
+## Ventas
+
+Este módulo muestra el historial de ventas realizadas en los expendios.
+
+### Lo que debes saber
+- Las ventas se registran en efectivo.
+- Puedes ver quién hizo la venta, la fecha, los productos y el total.
+- En la columna de acciones puedes abrir el ticket de una venta para revisarlo o imprimirlo.
+
+![img](./imgs/_)
+
+---
+
+## Usuarios
+
+En este módulo se administran los accesos al sistema.
+
+### ¿Qué puedes hacer?
+- Crear un usuario nuevo.
+- Asignar un rol:
+  - Responsable de planta
+  - Responsable de expendio
+- Vincularlo a la planta o expendio correspondiente.
+- Editar o eliminar usuarios.
+
+> El sistema envía un correo con instrucciones para que la persona pueda iniciar sesión.
+
+![img](./imgs/_)
+
+---
+
+_Versión del manual: 1.0_
