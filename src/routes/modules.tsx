@@ -14,6 +14,7 @@ import {
   Building2,
   Award,
   MapPinned,
+  BookMarked,
 } from "lucide-react"
 import { lazy } from "react"
 
@@ -36,6 +37,7 @@ const Faqs = lazy(() => import("../pages/modules/Faqs"))
 const Departments = lazy(() => import("../pages/modules/Departments"))
 const Brands = lazy(() => import("../pages/modules/Brands"))
 const Retailers = lazy(() => import("../pages/modules/Retailers"))
+const UserManual = lazy(() => import("../pages/modules/UserManual"))
 
 const SITE_CONTENT_GROUP = "Sitio Web"
 
@@ -158,5 +160,12 @@ export const MODULE_ROUTES: AppModuleRoute[] = [
     allowRoles: ["Factory manager", "Store manager"],
     icon: null,
     label: "",
-  }
+  },
+  {
+    path: PATHS.userManual,
+    element: <UserManual />,
+    label: "Manual de usuario",
+    icon: <BookMarked />,
+    allowRoles: ["Factory manager", "Store manager"],
+  },
 ]
