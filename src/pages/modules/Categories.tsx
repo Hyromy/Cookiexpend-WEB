@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
+import useOrderable from "../../hooks/useOrderable"
 import { categoryService } from "../../services/cookiexpend"
 import type { ApiRequestError, categoryRequest, categoryResponse } from "../../types/api"
 import { ActionButton, Button } from "../../components/Button"
 import { FileField, Form, TextField } from "../../components/Form"
-import { Table } from "../../components/Table"
+import { DragHandle, Table } from "../../components/Table"
 import { Dialog, Modal } from "../../components/Modal"
 import useToast from "../../hooks/useToast"
 
 export default function Categories() {
-  const { data, error, isLoading, request } = useApi<categoryResponse[]>()
+  const { data, error, isLoading, request, setData } = useApi<categoryResponse[]>()
   const requestData = useCallback(() => request(categoryService.get()), [request])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<categoryResponse | null>(null)
@@ -18,6 +19,12 @@ export default function Categories() {
   const [deletingCategory, setDeletingCategory] = useState<categoryResponse | null>(null)
   const [isImageOpen, setIsImageOpen] = useState(false)
   const [imageSrc, setImageSrc] = useState("")
+  const { moveToEdge, reorder, isFirst, isLast, isBusy, rank, nextOrder } = useOrderable<categoryResponse>(
+    data,
+    setData,
+    (id, order) => categoryService.upd(id, { order } as categoryRequest),
+    requestData
+  )
 
   useEffect(() => { requestData() }, [requestData])
 
@@ -59,9 +66,38 @@ export default function Categories() {
           data={data!}
           exportToExcel
           filename="Categorías"
+          reorder={{
+            getRowId: c => String(c.id),
+            onReorder: reorder
+          }}
           columns={[
             { accessorKey: "label", header: "Nombre" },
-            { accessorKey: "order", header: "Orden" },
+            {
+              id: "order",
+              header: "Orden",
+              cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                  <DragHandle />
+                  <span className="w-5 text-center font-medium">{rank(row.original)}</span>
+                  <div className="flex gap-1">
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="top"
+                      disabled={isBusy || isFirst(row.original)}
+                      cb={() => moveToEdge(row.original, "first")}
+                    />
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="bottom"
+                      disabled={isBusy || isLast(row.original)}
+                      cb={() => moveToEdge(row.original, "last")}
+                    />
+                  </div>
+                </div>
+              )
+            },
             {
               accessorKey: "logo",
               header: "Logo",
@@ -105,6 +141,7 @@ export default function Categories() {
       >
         <CategoryForm
           category={editingCategory}
+          nextOrder={nextOrder}
           onDone={() => {
             setEditingCategory(null)
             setIsModalOpen(false)
@@ -129,7 +166,7 @@ export default function Categories() {
       >
         {imageSrc && (
           <img
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             src={imageSrc}
             alt="Categoría"
           />
@@ -141,9 +178,10 @@ export default function Categories() {
 
 type CategoryFormProps = {
   category: categoryResponse | null
+  nextOrder: () => number
   onDone?: () => void
 }
-function CategoryForm({ category, onDone }: CategoryFormProps) {
+function CategoryForm({ category, nextOrder, onDone }: CategoryFormProps) {
   const { isLoading, request, setData } = useApi()
   const { addToast } = useToast()
 
@@ -167,6 +205,7 @@ function CategoryForm({ category, onDone }: CategoryFormProps) {
 
   const onSubmitHandler = (data: categoryRequest) => {
     clearData(data)
+    if (!category) data.order = nextOrder()
     const validation = validate(data)
     if (validation != true) {
       addToast(validation, "warning")
@@ -194,15 +233,6 @@ function CategoryForm({ category, onDone }: CategoryFormProps) {
           name="label"
           label="Nombre"
           defaultValue={category?.label}
-        />
-      </div>
-      <div>
-        <TextField
-          cleanRegex={/\D/}
-          name="order"
-          label="Orden"
-          defaultValue={category?.order}
-          placeholder="0"
         />
       </div>
       <div>
@@ -273,7 +303,6 @@ function DeleteDialog({
 
 const clearData = (data: categoryRequest) => {
   data.label = data.label?.trim().replace(/\s+/g, " ")
-  if (!String(data.order ?? "").trim()) delete data.order
 }
 
 const validate = (data: categoryRequest): string | true => {

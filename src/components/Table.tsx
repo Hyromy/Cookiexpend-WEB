@@ -10,7 +10,7 @@ import {
   type Header,
   type Row,
 } from "@tanstack/react-table"
-import { useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import * as XLSX from "xlsx"
 import clsx from "clsx"
 import {
@@ -18,8 +18,26 @@ import {
   ArrowUpWideNarrow,
   ChevronLeft,
   ChevronRight,
+  GripVertical,
   Search,
 } from "lucide-react"
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import { Button } from "./Button"
 import { SelectField } from "./Form"
 import { Excel } from "./Icon"
@@ -40,23 +58,60 @@ export type ExcelExportConfig<T> = {
   sheets?: ExcelSheetConfig<T>[]
 }
 
+export type ReorderConfig<T> = {
+  getRowId: (row: T) => string
+  onReorder: (reordered: T[]) => void
+}
+
+type RowDragHandle = {
+  attributes: ReturnType<typeof useSortable>["attributes"]
+  listeners: ReturnType<typeof useSortable>["listeners"]
+}
+const RowDragContext = createContext<RowDragHandle | null>(null)
+
+/**
+ * A drag handle for rows in a Table configured with the `reorder` prop. Only this handle is
+ * draggable, not the whole row, so it doesn't interfere with clicks on other row controls.
+ */
+export function DragHandle() {
+  const ctx = useContext(RowDragContext)
+  if (!ctx) return null
+
+  return (
+    <button
+      type="button"
+      {...ctx.attributes}
+      {...ctx.listeners}
+      className="touch-none cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground"
+      aria-label="Arrastrar para reordenar"
+    >
+      <GripVertical className="size-4" />
+    </button>
+  )
+}
+
 type TableProps<T> = {
   data: T[]
   columns: ColumnDef<T>[]
   exportToExcel?: boolean | ExcelExportConfig<T>
   filename?: string
   excludeFromView?: (row: T) => boolean
+  reorder?: ReorderConfig<T>
 }
 
 /**
  * Component that renders a table with sorting, filtering, pagination and optional export functionality.
- * 
+ *
  * @param data - The data to be loaded in the table.
  * @param columns - The column definitions for the table to display.
  * @param exportToExcel - Whether to show the export to Excel button.
  * @param filename - The filename to use when exporting to Excel.
  * @param excludeFromView - A function that receives a row and returns true if it should be excluded from the table view.
- * 
+ * @param reorder - Enables drag-to-reorder rows. Pass `getRowId` to derive a stable string id per row and
+ * `onReorder` to receive the full reordered array once a row is dropped. Sorting and pagination are
+ * disabled while this is set, since dragging across pages/sorted views isn't meaningful. Use the exported
+ * `DragHandle` component in one of your `columns` cells to give the user something to grab.
+ *
  * @example
  * const data = [
  *   { id: 1, name: "Product 1", price: 10 },
@@ -67,7 +122,7 @@ type TableProps<T> = {
  *   { accessorKey: "name", header: "Product name" },
  *   { accessorKey: "price", header: "Price", cell: ({ getValue }) => `$${getValue()}` }
  * ]
- * 
+ *
  * <Table data={data} columns={columns} />
  */
 export function Table<T>({
@@ -75,7 +130,8 @@ export function Table<T>({
   columns,
   exportToExcel = false,
   filename = "table-data",
-  excludeFromView
+  excludeFromView,
+  reorder
 }: TableProps<T>) {
   const paginationSizeOptions = [10, 25, 50, 100]
   const [sorting, setSorting] = useState<SortingState>([])
@@ -93,6 +149,7 @@ export function Table<T>({
       sorting,
       globalFilter
     },
+    enableSorting: !reorder,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -105,6 +162,29 @@ export function Table<T>({
       }
     }
   })
+
+  useEffect(() => {
+    if (reorder) table.setPageSize(Math.max(data.length, 1))
+  }, [reorder, data.length, table])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (!reorder) return
+
+    const { active, over } = event
+    if (!over || active.id == over.id) return
+
+    const ids = data.map(reorder.getRowId)
+    const oldIndex = ids.indexOf(String(active.id))
+    const newIndex = ids.indexOf(String(over.id))
+    if (oldIndex == -1 || newIndex == -1) return
+
+    reorder.onReorder(arrayMove(data, oldIndex, newIndex))
+  }
 
   const processRowsForExcel = (rowsToProcess: Row<T>[]) => {
     return rowsToProcess.map(row => {
@@ -185,7 +265,7 @@ export function Table<T>({
   const exportOptions = (
     <div>
       {!!exportToExcel && (
-        <Button 
+        <Button
           variant="ghost"
           noFocusRing
           onClick={exportToExcelHandler}
@@ -221,7 +301,7 @@ export function Table<T>({
       <div className="flex flex-wrap items-center gap-4 sm:gap-6">
         <div>
           Mostrando página <span className="font-medium text-foreground">{table.getState().pagination.pageIndex + 1}</span> de <span className="font-medium text-foreground">{table.getPageCount()}</span>
-        </div>          
+        </div>
         <div className="flex items-center gap-2">
           <span>Mostrar:</span>
           <SelectField
@@ -254,6 +334,8 @@ export function Table<T>({
     </div>
   )
 
+  const visibleRows = table.getRowModel().rows.filter(row => !excludeFromView?.(row.original))
+
   return (
     <div className="w-full space-y-2">
       <div className="flex flex-row items-center justify-between gap-4 relative">
@@ -261,14 +343,14 @@ export function Table<T>({
         {exportOptions}
       </div>
       <div className="w-full overflow-x-auto rounded-xl border border-muted/40 backdrop-blur-md bg-bg/40 shadow-sm relative">
-        <table className="w-full text-left border-collapse text-sm">          
+        <table className="w-full text-left border-collapse text-sm">
           <thead className="border-b border-muted/40">
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
-                  <th 
-                    key={header.id} 
-                    className="p-4 align-middle bg-bg font-semibold" 
+                  <th
+                    key={header.id}
+                    className="p-4 align-middle bg-bg font-semibold"
                   >
                     {!header.isPlaceholder && renderHeader(header)}
                   </th>
@@ -276,26 +358,78 @@ export function Table<T>({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-muted/30">
-            {table.getRowModel().rows.map(row => !excludeFromView?.(row.original) && (
-              <tr 
-                key={row.id}
-                className="hover:bg-muted/10 transition-colors duration-150 ease-in-out"
+          {reorder
+            ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} className="p-4 align-middle text-foreground/90">
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </td>
+                <SortableContext
+                  items={visibleRows.map(row => reorder.getRowId(row.original))}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <tbody className="divide-y divide-muted/30">
+                    {visibleRows.map(row => (
+                      <SortableRow key={row.id} id={reorder.getRowId(row.original)} row={row} />
+                    ))}
+                  </tbody>
+                </SortableContext>
+              </DndContext>
+            )
+            : (
+              <tbody className="divide-y divide-muted/30">
+                {visibleRows.map(row => (
+                  <tr
+                    key={row.id}
+                    className="hover:bg-muted/10 transition-colors duration-150 ease-in-out"
+                  >
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id} className="p-4 align-middle text-foreground/90">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            ))}
-          </tbody>
+              </tbody>
+            )
+          }
         </table>
       </div>
-      {pagination}
+      {!reorder && pagination}
     </div>
+  )
+}
+
+function SortableRow<T>({ id, row }: { id: string; row: Row<T> }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <RowDragContext.Provider value={{ attributes, listeners }}>
+      <tr
+        ref={setNodeRef}
+        style={style}
+        className={clsx(
+          "hover:bg-muted/10 transition-colors duration-150 ease-in-out",
+          isDragging && "relative z-10 bg-bg shadow-lg"
+        )}
+      >
+        {row.getVisibleCells().map(cell => (
+          <td key={cell.id} className="p-4 align-middle text-foreground/90">
+            {flexRender(
+              cell.column.columnDef.cell,
+              cell.getContext()
+            )}
+          </td>
+        ))}
+      </tr>
+    </RowDragContext.Provider>
   )
 }

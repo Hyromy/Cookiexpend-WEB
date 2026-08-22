@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
+import useOrderable from "../../hooks/useOrderable"
 import { galleryItemService } from "../../services/cookiexpend"
 import type { ApiRequestError, galleryItemRequest, galleryItemResponse } from "../../types/api"
 import { ActionButton, Button } from "../../components/Button"
 import { FileField, Form, TextField } from "../../components/Form"
-import { Table } from "../../components/Table"
+import { DragHandle, Table } from "../../components/Table"
 import { Dialog, Modal } from "../../components/Modal"
 import useToast from "../../hooks/useToast"
 
 export default function Gallery() {
-  const { data, error, isLoading, request } = useApi<galleryItemResponse[]>()
+  const { data, error, isLoading, request, setData } = useApi<galleryItemResponse[]>()
   const requestData = useCallback(() => request(galleryItemService.get()), [request])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<galleryItemResponse | null>(null)
@@ -18,6 +19,12 @@ export default function Gallery() {
   const [deletingItem, setDeletingItem] = useState<galleryItemResponse | null>(null)
   const [isImageOpen, setIsImageOpen] = useState(false)
   const [imageSrc, setImageSrc] = useState("")
+  const { moveToEdge, reorder, isFirst, isLast, isBusy, rank, nextOrder } = useOrderable<galleryItemResponse>(
+    data,
+    setData,
+    (id, order) => galleryItemService.upd(id, { order } as galleryItemRequest),
+    requestData
+  )
 
   useEffect(() => { requestData() }, [requestData])
 
@@ -59,9 +66,38 @@ export default function Gallery() {
           data={data!}
           exportToExcel
           filename="Galería"
+          reorder={{
+            getRowId: g => String(g.id),
+            onReorder: reorder
+          }}
           columns={[
             { accessorKey: "alt", header: "Descripción" },
-            { accessorKey: "order", header: "Orden" },
+            {
+              id: "order",
+              header: "Orden",
+              cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                  <DragHandle />
+                  <span className="w-5 text-center font-medium">{rank(row.original)}</span>
+                  <div className="flex gap-1">
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="top"
+                      disabled={isBusy || isFirst(row.original)}
+                      cb={() => moveToEdge(row.original, "first")}
+                    />
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="bottom"
+                      disabled={isBusy || isLast(row.original)}
+                      cb={() => moveToEdge(row.original, "last")}
+                    />
+                  </div>
+                </div>
+              )
+            },
             {
               accessorKey: "url",
               header: "Imagen",
@@ -105,6 +141,7 @@ export default function Gallery() {
       >
         <GalleryItemForm
           item={editingItem}
+          nextOrder={nextOrder}
           onDone={() => {
             setEditingItem(null)
             setIsModalOpen(false)
@@ -141,9 +178,10 @@ export default function Gallery() {
 
 type GalleryItemFormProps = {
   item: galleryItemResponse | null
+  nextOrder: () => number
   onDone?: () => void
 }
-function GalleryItemForm({ item, onDone }: GalleryItemFormProps) {
+function GalleryItemForm({ item, nextOrder, onDone }: GalleryItemFormProps) {
   const { isLoading, request, setData } = useApi()
   const { addToast } = useToast()
 
@@ -167,6 +205,7 @@ function GalleryItemForm({ item, onDone }: GalleryItemFormProps) {
 
   const onSubmitHandler = (data: galleryItemRequest) => {
     clearData(data)
+    if (!item) data.order = nextOrder()
     const validation = validate(data, item)
     if (validation != true) {
       addToast(validation, "warning")
@@ -201,15 +240,6 @@ function GalleryItemForm({ item, onDone }: GalleryItemFormProps) {
           name="alt"
           label="Descripción"
           defaultValue={item?.alt}
-        />
-      </div>
-      <div>
-        <TextField
-          cleanRegex={/\D/}
-          name="order"
-          label="Orden"
-          defaultValue={item?.order}
-          placeholder="0"
         />
       </div>
       <div className="flex justify-center">
@@ -273,7 +303,6 @@ function DeleteDialog({
 
 const clearData = (data: galleryItemRequest) => {
   data.alt = data.alt?.trim().replace(/\s+/g, " ")
-  if (!String(data.order ?? "").trim()) delete data.order
 }
 
 const validate = (data: galleryItemRequest, item: galleryItemResponse | null): string | true => {

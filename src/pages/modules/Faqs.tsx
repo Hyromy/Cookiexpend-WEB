@@ -1,21 +1,28 @@
 import { useCallback, useEffect, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
+import useOrderable from "../../hooks/useOrderable"
 import { faqService } from "../../services/cookiexpend"
 import type { ApiRequestError, faqRequest, faqResponse } from "../../types/api"
 import { ActionButton, Button } from "../../components/Button"
 import { Form, TextAreaField, TextField } from "../../components/Form"
-import { Table } from "../../components/Table"
+import { DragHandle, Table } from "../../components/Table"
 import { Dialog, Modal } from "../../components/Modal"
 import useToast from "../../hooks/useToast"
 
 export default function Faqs() {
-  const { data, error, isLoading, request } = useApi<faqResponse[]>()
+  const { data, error, isLoading, request, setData } = useApi<faqResponse[]>()
   const requestData = useCallback(() => request(faqService.get()), [request])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingFaq, setEditingFaq] = useState<faqResponse | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [deletingFaq, setDeletingFaq] = useState<faqResponse | null>(null)
+  const { moveToEdge, reorder, isFirst, isLast, isBusy, rank, nextOrder } = useOrderable<faqResponse>(
+    data,
+    setData,
+    (id, order) => faqService.upd(id, { order } as faqRequest),
+    requestData
+  )
 
   useEffect(() => { requestData() }, [requestData])
 
@@ -57,10 +64,39 @@ export default function Faqs() {
           data={data!}
           exportToExcel
           filename="FAQ"
+          reorder={{
+            getRowId: f => String(f.id),
+            onReorder: reorder
+          }}
           columns={[
             { accessorKey: "question", header: "Pregunta" },
             { accessorKey: "answer", header: "Respuesta" },
-            { accessorKey: "order", header: "Orden" },
+            {
+              id: "order",
+              header: "Orden",
+              cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                  <DragHandle />
+                  <span className="w-5 text-center font-medium">{rank(row.original)}</span>
+                  <div className="flex gap-1">
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="top"
+                      disabled={isBusy || isFirst(row.original)}
+                      cb={() => moveToEdge(row.original, "first")}
+                    />
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="bottom"
+                      disabled={isBusy || isLast(row.original)}
+                      cb={() => moveToEdge(row.original, "last")}
+                    />
+                  </div>
+                </div>
+              )
+            },
             {
               id: "actions",
               header: "Acciones",
@@ -89,6 +125,7 @@ export default function Faqs() {
       >
         <FaqForm
           faq={editingFaq}
+          nextOrder={nextOrder}
           onDone={() => {
             setEditingFaq(null)
             setIsModalOpen(false)
@@ -109,9 +146,10 @@ export default function Faqs() {
 
 type FaqFormProps = {
   faq: faqResponse | null
+  nextOrder: () => number
   onDone?: () => void
 }
-function FaqForm({ faq, onDone }: FaqFormProps) {
+function FaqForm({ faq, nextOrder, onDone }: FaqFormProps) {
   const { isLoading, request, setData } = useApi()
   const { addToast } = useToast()
 
@@ -123,6 +161,7 @@ function FaqForm({ faq, onDone }: FaqFormProps) {
 
   const onSubmitHandler = (data: faqRequest) => {
     clearData(data)
+    if (!faq) data.order = nextOrder()
     const validation = validate(data)
     if (validation != true) {
       addToast(validation, "warning")
@@ -158,15 +197,6 @@ function FaqForm({ faq, onDone }: FaqFormProps) {
           name="answer"
           label="Respuesta"
           defaultValue={faq?.answer}
-        />
-      </div>
-      <div>
-        <TextField
-          cleanRegex={/\D/}
-          name="order"
-          label="Orden"
-          defaultValue={faq?.order}
-          placeholder="0"
         />
       </div>
       <div className="flex justify-center">
@@ -231,7 +261,6 @@ function DeleteDialog({
 const clearData = (data: faqRequest) => {
   data.question = data.question?.trim().replace(/\s+/g, " ")
   data.answer = data.answer?.trim()
-  if (!String(data.order ?? "").trim()) delete data.order
 }
 
 const validate = (data: faqRequest): string | true => {

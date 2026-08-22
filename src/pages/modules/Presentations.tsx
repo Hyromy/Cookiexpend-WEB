@@ -1,21 +1,28 @@
 import { useCallback, useEffect, useState } from "react"
 import { StateGate } from "../../components/State"
 import useApi from "../../hooks/useApi"
+import useOrderable from "../../hooks/useOrderable"
 import { presentationService } from "../../services/cookiexpend"
 import type { ApiRequestError, presentationRequest, presentationResponse } from "../../types/api"
 import { ActionButton, Button } from "../../components/Button"
 import { Form, TextField } from "../../components/Form"
-import { Table } from "../../components/Table"
+import { DragHandle, Table } from "../../components/Table"
 import { Dialog, Modal } from "../../components/Modal"
 import useToast from "../../hooks/useToast"
 
 export default function Presentations() {
-  const { data, error, isLoading, request } = useApi<presentationResponse[]>()
+  const { data, error, isLoading, request, setData } = useApi<presentationResponse[]>()
   const requestData = useCallback(() => request(presentationService.get()), [request])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPresentation, setEditingPresentation] = useState<presentationResponse | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [deletingPresentation, setDeletingPresentation] = useState<presentationResponse | null>(null)
+  const { moveToEdge, reorder, isFirst, isLast, isBusy, rank, nextOrder } = useOrderable<presentationResponse>(
+    data,
+    setData,
+    (id, order) => presentationService.upd(id, { order } as presentationRequest),
+    requestData
+  )
 
   useEffect(() => { requestData() }, [requestData])
 
@@ -57,9 +64,38 @@ export default function Presentations() {
           data={data!}
           exportToExcel
           filename="Presentaciones"
+          reorder={{
+            getRowId: p => String(p.id),
+            onReorder: reorder
+          }}
           columns={[
             { accessorKey: "label", header: "Nombre" },
-            { accessorKey: "order", header: "Orden" },
+            {
+              id: "order",
+              header: "Orden",
+              cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                  <DragHandle />
+                  <span className="w-5 text-center font-medium">{rank(row.original)}</span>
+                  <div className="flex gap-1">
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="top"
+                      disabled={isBusy || isFirst(row.original)}
+                      cb={() => moveToEdge(row.original, "first")}
+                    />
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      icon="bottom"
+                      disabled={isBusy || isLast(row.original)}
+                      cb={() => moveToEdge(row.original, "last")}
+                    />
+                  </div>
+                </div>
+              )
+            },
             {
               id: "actions",
               header: "Acciones",
@@ -88,6 +124,7 @@ export default function Presentations() {
       >
         <PresentationForm
           presentation={editingPresentation}
+          nextOrder={nextOrder}
           onDone={() => {
             setEditingPresentation(null)
             setIsModalOpen(false)
@@ -108,9 +145,10 @@ export default function Presentations() {
 
 type PresentationFormProps = {
   presentation: presentationResponse | null
+  nextOrder: () => number
   onDone?: () => void
 }
-function PresentationForm({ presentation, onDone }: PresentationFormProps) {
+function PresentationForm({ presentation, nextOrder, onDone }: PresentationFormProps) {
   const { isLoading, request, setData } = useApi()
   const { addToast } = useToast()
 
@@ -130,6 +168,7 @@ function PresentationForm({ presentation, onDone }: PresentationFormProps) {
 
   const onSubmitHandler = (data: presentationRequest) => {
     clearData(data)
+    if (!presentation) data.order = nextOrder()
     const validation = validate(data)
     if (validation != true) {
       addToast(validation, "warning")
@@ -157,15 +196,6 @@ function PresentationForm({ presentation, onDone }: PresentationFormProps) {
           name="label"
           label="Nombre"
           defaultValue={presentation?.label}
-        />
-      </div>
-      <div>
-        <TextField
-          cleanRegex={/\D/}
-          name="order"
-          label="Orden"
-          defaultValue={presentation?.order}
-          placeholder="0"
         />
       </div>
       <div className="flex justify-center">
@@ -229,7 +259,6 @@ function DeleteDialog({
 
 const clearData = (data: presentationRequest) => {
   data.label = data.label?.trim().replace(/\s+/g, " ")
-  if (!String(data.order ?? "").trim()) delete data.order
 }
 
 const validate = (data: presentationRequest): string | true => {

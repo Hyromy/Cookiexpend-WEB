@@ -67,7 +67,7 @@ export default function Aside({closeCanvas}: {closeCanvas?: () => void}) {
 
   return (
     <aside className="border-muted lg:border-r flex flex-col h-full">
-      <div className="self-stretch sticky top-header-h">
+      <div className="self-stretch sticky top-header-h max-h-[calc(100vh-var(--spacing-header-h))] overflow-y-auto">
         {ungroupedModules.map((module) => renderModuleLink(module))}
         {groupNames.map((name) => {
           const groupModules = allowedModules.filter(module => module.group == name)

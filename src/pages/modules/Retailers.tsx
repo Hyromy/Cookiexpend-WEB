@@ -133,7 +133,7 @@ export default function Retailers() {
       >
         {imageSrc && (
           <img
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             src={imageSrc}
             alt="Retailer"
           />
@@ -150,6 +150,7 @@ type RetailerFormProps = {
 function RetailerForm({ retailer, onDone }: RetailerFormProps) {
   const { isLoading, request, setData } = useApi()
   const { addToast } = useToast()
+  const [selectedBrand, setSelectedBrand] = useState(retailer?.brand?.id.toString() ?? "")
 
   useEffect(() => { if (retailer) setData(retailer) }, [retailer, setData])
 
@@ -235,15 +236,17 @@ function RetailerForm({ retailer, onDone }: RetailerFormProps) {
         />
       </div>
       <div>
-        <BrandSelectField defaultValue={retailer?.brand?.id.toString()} />
+        <BrandSelectField defaultValue={retailer?.brand?.id.toString()} onChange={setSelectedBrand} />
       </div>
-      <div>
-        <FileField
-          label="Logo"
-          name="logo"
-          value={retailer?.logo_url}
-        />
-      </div>
+      {!selectedBrand && (
+        <div>
+          <FileField
+            label="Logo"
+            name="logo"
+            value={retailer?.logo_url}
+          />
+        </div>
+      )}
       <div className="flex justify-center">
         <Button
           className="px-6"
@@ -259,8 +262,9 @@ function RetailerForm({ retailer, onDone }: RetailerFormProps) {
 
 type BrandSelectFieldProps = {
   defaultValue?: string
+  onChange?: (value: string) => void
 }
-function BrandSelectField({ defaultValue }: BrandSelectFieldProps) {
+function BrandSelectField({ defaultValue, onChange }: BrandSelectFieldProps) {
   const { data, request } = useApi<brandResponse[]>()
 
   useEffect(() => { request(brandService.get()) }, [request])
@@ -277,6 +281,7 @@ function BrandSelectField({ defaultValue }: BrandSelectFieldProps) {
       placeholder="Sin marca"
       selected={defaultValue}
       options={options}
+      onChange={onChange}
     />
   )
 }

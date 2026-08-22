@@ -128,7 +128,7 @@ export default function Brands() {
       >
         {imageSrc && (
           <img
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             src={imageSrc}
             alt="Marca"
           />

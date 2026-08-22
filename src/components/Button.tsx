@@ -1,6 +1,6 @@
 import { type ReactNode } from "react"
 import useTheme from "../hooks/useTheme"
-import { Sun, Moon, Pencil, Trash, Image, Check, CircleSlash, Ticket } from "lucide-react"
+import { Sun, Moon, Pencil, Trash, Image, Check, CircleSlash, Ticket, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown } from "lucide-react"
 import { clsx } from "clsx"
 
 type buttonVariant = "primary" | "secondary" | "outline" | "ghost" | "success" | "info" | "danger" | "warning"
@@ -99,15 +99,17 @@ export function ThemeButton() {
 
 type ActionButtonProps = {
   variant: buttonVariant
-  icon: "pencil" | "trash" | "image" | "check" | "forbidden" | "ticket"
+  icon: "pencil" | "trash" | "image" | "check" | "forbidden" | "ticket" | "up" | "down" | "top" | "bottom"
   cb?: () => void
   disabled?: boolean
+  size?: buttonSize
 }
 export function ActionButton({
   variant,
   icon,
   cb,
-  disabled
+  disabled,
+  size
 }: ActionButtonProps) {
   const getIcon = () => {
     switch (icon) {
@@ -117,6 +119,10 @@ export function ActionButton({
       case "check": return <Check />
       case "forbidden": return <CircleSlash />
       case "ticket": return <Ticket />
+      case "up": return <ChevronUp />
+      case "down": return <ChevronDown />
+      case "top": return <ChevronsUp />
+      case "bottom": return <ChevronsDown />
     }
   }
 
@@ -125,6 +131,7 @@ export function ActionButton({
       variant={variant}
       disabled={disabled}
       onClick={cb}
+      size={size}
     >
       {getIcon()}
     </Button>

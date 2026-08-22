@@ -618,13 +618,14 @@ function DeleteDialog({
 
 const clearData = (data: productRequest) => {
   const record = data as Record<string, unknown>
-  PRODUCT_REQUIRED_ARGS.forEach(key => {
+  PRODUCT_REQUIRED_ARGS.filter(key => key != "description").forEach(key => {
     const value = record[key]
     if (typeof value == "string" && value) {
       record[key] = value.trim().replace(/\s+/g, " ")
     }
   })
 
+  if (data.description) data.description = data.description.trim().replace(/[ \t]+/g, " ")
   if (data.badge) data.badge = data.badge.trim().replace(/\s+/g, " ")
 
   data.price = parseFloat(data.price).toFixed(2)

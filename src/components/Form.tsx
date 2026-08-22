@@ -365,7 +365,7 @@ export function FileField({
     const files = Array.from(e.target.files ?? [])
     setFileNames(files.map(file => file.name))
     onChange?.(files)
-    setKey(k => k + 1)
+    if (multiple) setKey(k => k + 1)
   }
 
   const pickerLabel = fileNames.length
@@ -449,6 +449,12 @@ export function TextAreaField({
   disabled = false,
 }: TextAreaFieldProps) {
   const [value, setValue] = useState(defaultValue)
+  const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue)
+
+  if (defaultValue != prevDefaultValue) {
+    setPrevDefaultValue(defaultValue)
+    setValue(defaultValue)
+  }
 
   const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
     let inputValue = e.currentTarget.value
